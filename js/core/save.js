@@ -26,7 +26,7 @@ export function validateSaveData(s) {
         if (!Array.isArray(x)) errors.push(p + " must be array");
       } else if (object(v)) {
         if (!object(x)) errors.push(p + " must be object");
-        else shape(x, v, p);
+        else if (p !== "save.room.slots") shape(x, v, p);
       } else if (v !== null && typeof x !== typeof v) errors.push(p + " type");
     }
   };
@@ -233,7 +233,24 @@ export function migrateSave(data) {
   const errors = validateSaveData(data);
   if (errors.length)
     throw Error("せーぶを よめなかったよ：" + errors.slice(0, 3).join(" / "));
-  return clone(data);
+  const migrated = clone(data);
+  let completedCount = 0;
+  for (const d of DINOS) {
+    const book = migrated.dinosaurs.fossilBook[d.id];
+    if (!book) continue;
+    const hasAllLegacyParts = d.parts.every((part) => book.parts.includes(part));
+    if (!book.completed && hasAllLegacyParts) {
+      book.completed = true;
+      book.completedAt = migrated.meta.updatedAt || new Date().toISOString();
+    }
+    if (book.completed) {
+      completedCount++;
+      book.completedAt ||= migrated.meta.updatedAt || new Date().toISOString();
+      migrated.inventory.specialItems["figure_" + d.id] = 1;
+    }
+  }
+  migrated.dinosaurs.completedCount = completedCount;
+  return migrated;
 }
 export function checksum(text) {
   let h = 2166136261;

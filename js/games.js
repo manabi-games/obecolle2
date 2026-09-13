@@ -62,6 +62,8 @@ export const games = {
         CREATURES.find((c) => c.id === q.creature),
         false,
       )}</div>`;
+    if (q.visual === "emoji")
+      return `<div class="emoji-visual" role="img" aria-label="いきもの">${E(q.emoji)}</div>`;
     return "";
   },
   async answer(index) {
@@ -87,8 +89,16 @@ export const games = {
     if (a.callback) return a.callback((a.correct / 5) * 100);
     const reward = rules.finishLearning(this.s, a.subject, a.level, a.correct);
     await this.commit();
+    const subject = SUBJECTS.find((x) => x.id === a.subject);
+    const passed = a.correct >= 3;
+    const hasNext = passed && a.level < subject.maxLevel;
+    const primary = hasNext
+      ? `<button class="primary" data-a="quiz:${a.subject}:${a.level + 1}">つぎのレベルへ</button>`
+      : passed
+        ? ""
+        : `<button class="primary" data-a="quiz:${a.subject}:${a.level}">もういちど</button>`;
     this.panel(
-      `<div class="result"><h2>${a.correct >= 3 ? "よく がんばったね！" : "もういちど やってみよう"}</h2><div class="stars">${"★".repeat(reward.stars)}${"☆".repeat(3 - reward.stars)}</div><p>5もんのうち ${a.correct}もん せいかい</p><p>＋${reward.coins} こいん ／ あたらしいすたー ＋${reward.added}${reward.ticket ? " ／ ちけっと ＋1" : ""}</p><p class="muted">${a.correct >= 3 ? (a.level >= SUBJECTS.find((x) => x.id === a.subject).maxLevel ? "さいごまで できたね！ きねんの ごほうびを もらったよ。" : "つぎのれべるがひらいたよ。") : "まちがえたところを、ゆっくりれんしゅうしよう。"}</p><div class="row"><button data-a="levels:${a.subject}">がっこうへ</button><button class="primary" data-a="island">しまにもどる</button></div></div>`,
+      `<div class="result"><h2>${passed ? "よく がんばったね！" : "もういちど やってみよう"}</h2><div class="stars">${"★".repeat(reward.stars)}${"☆".repeat(3 - reward.stars)}</div><p>5もんのうち ${a.correct}もん せいかい</p><p>＋${reward.coins} こいん ／ あたらしいすたー ＋${reward.added}${reward.ticket ? " ／ ちけっと ＋1" : ""}</p><p class="muted">${passed ? (a.level >= subject.maxLevel ? "この きょうかは さいごまで できたね！" : "つぎのれべるが ひらいたよ。") : "まちがえたところを、ゆっくり れんしゅうしよう。"}</p><div class="result-actions">${primary}<button data-a="levels:${a.subject}">きょうかをえらぶ</button><button class="muted-button" data-a="island">しまへ</button></div></div>`,
       "small",
     );
   },
@@ -230,28 +240,34 @@ export const games = {
       tension: 0.5,
       progress: 0,
       holding: false,
-      wait: 2 + Math.random() * 4,
+      wait: 2 + Math.random() * 3,
     };
     this.panel(
-      `<h2>のこり ${trip.remaining}きゃすと</h2><p id="fish-instruction">いいところで きゃすと！</p><div class="meter"><i id="fish-needle" class="needle"></i></div><div class="progress-track"><div id="fish-progress" style="width:0%"></div></div><div class="row"><button id="fish-action" class="primary" data-a="fishaction">なげる！</button><button data-a="pause">Ⅱ</button></div><p class="footnote">なげる → 「！」であわせる → みどりのはんいにたもってひく<br>ひくときはぼたんか Space をながおし／はなす</p>`,
+      `<h2>のこり ${trip.remaining}きゃすと</h2><div id="fishing-stage" class="fishing-stage phase-power"><div class="fishing-sky"></div><div class="fishing-water"></div><div class="angler-2d"><span class="angler-head"></span><span class="angler-body"></span><span class="angler-arm"></span></div><div class="rod-2d"></div><div class="line-2d"></div><div class="bobber-2d"></div><div class="fish-shadow-2d">◆</div><div class="splash-2d">✦ ✦ ✦</div></div><p id="fish-instruction">ちからを みて、いいところで なげよう！</p><div class="meter"><i id="fish-needle" class="needle"></i></div><div class="progress-track"><div id="fish-progress" style="width:0%"></div></div><div class="row"><button id="fish-action" class="primary" data-a="fishaction">なげる！</button><button data-a="pause">Ⅱ</button></div><p class="footnote">① なげる → ② うきが しずんだら「あわせる！」 → ③ みどりの はんいで ひく<br>ひくときは ぼたんか Space を ながおし／はなす</p>`,
       "small",
     );
   },
   fishAction(down = true) {
     const a = this.activity;
     if (a?.kind !== "fish") return;
+    const stage = document.querySelector("#fishing-stage");
     if (a.phase === "power") {
       a.phase = "wait";
       a.elapsed = 0;
       a.castBonus = Math.abs(a.power - 0.5) < 0.2 ? 0.1 : 0;
+      stage?.classList.remove("phase-power");
+      stage?.classList.add("phase-wait");
       document.querySelector("#fish-instruction").textContent =
-        "うきが うごくのを まとう…";
+        "いとを なげたよ。うきと さかなを よく みよう…";
       document.querySelector("#fish-action").textContent = "まってね";
+      document.querySelector("#fish-action").disabled = true;
     } else if (a.phase === "bite") {
       a.phase = "pull";
       a.elapsed = 0;
+      stage?.classList.remove("phase-bite");
+      stage?.classList.add("phase-pull");
       document.querySelector("#fish-instruction").textContent =
-        "みどりのはんいに たもとう！";
+        "かかった！ みどりの はんいに たもって ひこう！";
       document.querySelector("#fish-action").textContent = "ながおしで ひく";
     } else if (a.phase === "pull") {
       /* Holding is owned by pointerdown/up and physical key events. */
@@ -286,56 +302,67 @@ export const games = {
     if (!trip) return this.excavation();
     this.activity = {
       kind: "dig",
-      cells: Array(12).fill(3),
-      tool: "hammer",
-      target: Math.floor(Math.random() * 12),
-      moves: 0,
+      phase: "choose",
+      spot: null,
+      hammerHits: 0,
+      brushHits: 0,
     };
     this.panel(
-      `<h2>のこり ${trip.remaining}ばしょ</h2><div class="row"><button data-a="digtool:hammer" aria-pressed="true">はんまー</button><button data-a="digtool:brush">ぶらし</button><button data-a="digtool:sensor">せんさー</button><button data-a="pause">Ⅱ</button></div><p id="dig-hint">いわをけずって、じめんをしらべよう</p><div class="dig-grid">${Array.from({ length: 12 }, (_, i) => `<button class="dig-cell" data-a="digcell:${i}">◆</button>`).join("")}</div><p class="footnote">はんまーでおおきく、ぶらしでほそかく。かせきはこわれません。</p>`,
+      `<h2>のこり ${trip.remaining}かい</h2><p>きらきら している ばしょを 1つ えらぼう！</p><div class="dig-spots">${[0, 1, 2].map((i) => `<button class="dig-spot" data-a="digspot:${i}" aria-label="きらきら ${i + 1}"><span>✦</span><i></i></button>`).join("")}</div><p class="footnote">どこを えらんでも だいじょうぶ。20〜30びょうで 1ぴき みつかるよ。</p><button data-a="pause">Ⅱ</button>`,
       "small",
     );
   },
-  digTool(tool) {
+  chooseDigSpot(i) {
     const a = this.activity;
-    if (a?.kind !== "dig") return;
-    a.tool = tool;
-    document
-      .querySelectorAll('[data-a^="digtool:"]')
-      .forEach((b) =>
-        b.setAttribute("aria-pressed", b.dataset.a === "digtool:" + tool),
-      );
-    if (tool === "sensor") {
-      document
-        .querySelector(`[data-a="digcell:${a.target}"]`)
-        .classList.add("hint");
-      document.querySelector("#dig-hint").textContent =
-        "ここに なにかありそう！";
+    if (a?.kind !== "dig" || a.phase !== "choose" || i < 0 || i > 2) return;
+    a.spot = i;
+    a.phase = "hammer";
+    this.panel(
+      `<h2>ここを ほってみよう！</h2><p id="dig-instruction">はんまーで 3かい たたこう</p><div class="dig-stage"><div id="dig-rock" class="dig-rock"><span id="dig-fossil" class="dig-fossil">🦴</span></div><div id="dig-dust" class="dig-dust"></div></div><div class="dig-count" id="dig-count">0 / 3</div><div class="row"><button id="dig-action" class="primary" data-a="dighammer">🔨 はんまー</button><button data-a="pause">Ⅱ</button></div>`,
+      "small",
+    );
+  },
+  digHammer() {
+    const a = this.activity;
+    if (a?.kind !== "dig" || a.phase !== "hammer") return;
+    a.hammerHits++;
+    const rock = document.querySelector("#dig-rock");
+    rock?.classList.add(`crack-${Math.min(3, a.hammerHits)}`);
+    document.querySelector("#dig-dust")?.classList.add("burst");
+    setTimeout(() => document.querySelector("#dig-dust")?.classList.remove("burst"), 180);
+    const count = document.querySelector("#dig-count");
+    if (count) count.textContent = `${Math.min(3, a.hammerHits)} / 3`;
+    this.audio.effect();
+    if (a.hammerHits >= 3) {
+      a.phase = "brush";
+      document.querySelector("#dig-fossil")?.classList.add("show");
+      document.querySelector("#dig-rock")?.classList.add("opened");
+      document.querySelector("#dig-instruction").textContent = "かせきが みえた！ ぶらしで 3かい やさしく こすろう";
+      const button = document.querySelector("#dig-action");
+      button.dataset.a = "digbrush";
+      button.textContent = "🖌️ ぶらし";
+      if (count) count.textContent = "0 / 3";
     }
   },
-  async digCell(i) {
+  async digBrush() {
     const a = this.activity;
-    if (a?.kind !== "dig" || a.tool === "sensor") return;
-    a.moves++;
-    a.cells[i] = Math.max(0, a.cells[i] - (a.tool === "hammer" ? 2 : 1));
-    const b = document.querySelector(`[data-a="digcell:${i}"]`);
-    b.textContent = a.cells[i]
-      ? "·".repeat(a.cells[i])
-      : i === a.target
-        ? "✦"
-        : "　";
-    if (!a.cells[i]) b.classList.add("clean");
-    if (i === a.target && a.cells[i] === 0) {
-      this.activity = null;
-      const r = rules.digReward(this.s);
-      this.companionReward("はっくつ");
-      await this.commit();
-      this.world.hero?.setState("happy");
-      this.panel(
-        `<div class="result"><h2>${r.d ? "かせきを はっけん！" : "こいんを はっけん！"}</h2>${r.d ? `<h3>${r.d.name}</h3><p>${PART_NAMES[r.part]} ${r.isNew ? "NEW！" : "もっていたぱーつ → 20こいん"}</p>` : `<p>＋${r.coins}こいん</p>`}<button class="primary" data-a="${this.s.dinosaurs.trip ? "nextdig" : "excavation"}">${this.s.dinosaurs.trip ? "つぎのばしょ" : "はっくつじまへ"}</button></div>`,
-        "small",
-      );
-    }
+    if (a?.kind !== "dig" || a.phase !== "brush") return;
+    a.brushHits++;
+    document.querySelector("#dig-rock")?.classList.add(`brush-${Math.min(3, a.brushHits)}`);
+    const count = document.querySelector("#dig-count");
+    if (count) count.textContent = `${Math.min(3, a.brushHits)} / 3`;
+    if (a.brushHits < 3) return;
+    a.phase = "done";
+    const r = rules.digReward(this.s);
+    this.companionReward("はっくつ");
+    await this.commit();
+    this.activity = null;
+    this.world.hero?.setState("happy");
+    this.audio.effect("reward");
+    this.panel(
+      `<div class="result"><h2>${r.isNew ? "NEW！ きょうりゅう はっけん！" : "また みつけたよ！"}</h2><div class="collection-icon detail-art">${this.icon(r.d)}</div><h3>${r.d.name}</h3><p>${r.isNew ? "かせきから まるごと ふくげん！ ずかんと ふぃぎゅあに ついかされたよ。" : `もう ふくげんずみだったよ。＋${r.coins}こいん！`}</p><p>${r.d.fact}</p><button class="primary" data-a="${this.s.dinosaurs.trip ? "nextdig" : "excavation"}">${this.s.dinosaurs.trip ? "つぎの きらきらへ" : "はっくつじまへ"}</button></div>`,
+      "small",
+    );
   },
   restoration(id) {
     const d = DINOS.find((d) => d.id === id),
@@ -391,7 +418,6 @@ export const games = {
       knowledge: 0,
       typing: 0,
     };
-    const level = Math.min(20, this.s.learning.math.unlocked);
     this.panel(
       `<div class="result"><h2>${TOURNAMENTS.find((x) => x.id === active.cup).name}</h2><p>だい ${active.wins + 1}しあい ／ 3しあい</p><p>ROUND 1：がくしゅう → ROUND 2：ちしき → FINAL：たいぴんぐ</p><button class="primary" data-a="arenaround">はじめる</button></div>`,
       "small",
@@ -400,7 +426,10 @@ export const games = {
   arenaRoundStart() {
     this.startQuiz(
       "math",
-      Math.min(20, this.s.learning.math.unlocked),
+      Math.min(
+        SUBJECTS.find((x) => x.id === "math").maxLevel,
+        this.s.learning.math.unlocked,
+      ),
       (score) => {
         this.arenaRound.learn = score;
         this.panel(
@@ -411,9 +440,11 @@ export const games = {
     );
   },
   arenaKnowledge() {
+    const subject = ["fish", "dinosaurs", "animals"][this.s.arena.active.wins];
+    const maxLevel = SUBJECTS.find((x) => x.id === subject).maxLevel;
     this.startQuiz(
-      ["fish", "dinosaurs", "animals"][this.s.arena.active.wins],
-      Math.max(1, Math.min(20, this.s.learning.animals.unlocked)),
+      subject,
+      Math.max(1, Math.min(maxLevel, this.s.learning[subject].unlocked)),
       (score) => {
         this.arenaRound.knowledge = score;
         this.panel(
@@ -512,8 +543,13 @@ export const games = {
       if (a.phase === "wait" && a.elapsed > a.wait) {
         a.phase = "bite";
         a.elapsed = 0;
-        document.querySelector("#fish-instruction").textContent = "！ いまだ！";
-        document.querySelector("#fish-action").textContent = "あわせる！";
+        const stage = document.querySelector("#fishing-stage");
+        stage?.classList.remove("phase-wait");
+        stage?.classList.add("phase-bite");
+        document.querySelector("#fish-instruction").textContent = "！ うきが しずんだ！ いまだ！";
+        const action = document.querySelector("#fish-action");
+        action.textContent = "あわせる！";
+        action.disabled = false;
         this.audio.effect("reward");
       }
       if (a.phase === "bite" && a.elapsed > 3)
@@ -530,6 +566,15 @@ export const games = {
         if (n) n.style.left = a.tension * 96 + "%";
         document.querySelector("#fish-progress").style.width =
           Math.min(100, a.progress * 100) + "%";
+        const stage = document.querySelector("#fishing-stage");
+        if (stage) {
+          const pull = Math.min(1, a.progress);
+          stage.style.setProperty("--bobber-y", `${-38 * pull}px`);
+          stage.style.setProperty("--fish-top", `${150 - 68 * pull}px`);
+          stage.style.setProperty("--fish-rotate", `${-5 - 22 * pull}deg`);
+          stage.style.setProperty("--splash-opacity", String(0.25 + pull * 0.75));
+          stage.style.setProperty("--splash-scale", String(0.6 + pull * 0.8));
+        }
         if (a.progress >= 1) this.endCast(true).catch((e) => this.error(e));
         else if (a.tension <= 0 || a.tension >= 1 || a.elapsed > 35)
           this.endCast(false).catch((e) => this.error(e));

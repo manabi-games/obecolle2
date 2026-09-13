@@ -140,6 +140,8 @@ export function newSave(slotId, name = "なまえ", appearance = {}) {
   };
 }
 const count = (o) => Object.keys(o).length;
+export const subjectMax = (id) =>
+  SUBJECTS.find((subject) => subject.id === id)?.maxLevel || 1;
 export function remember(s, type, title, subjectId = "", friendIds = []) {
   s.memories.push({
     id: "memory_" + Date.now() + "_" + s.memories.length,
@@ -230,7 +232,7 @@ export function evaluate(s) {
               : friend.route === "arena"
                 ? s.arena.clearedTournaments.length >= friend.threshold
                 : friend.id === "friend_28"
-                  ? s.learning.english.levels[20]?.stars > 0
+                  ? s.learning.english.levels[subjectMax("english")]?.stars > 0
                   : friend.id === "friend_29"
                     ? Object.values(s.friends).some((f) => f.affinity >= 95)
                     : friend.id === "friend_30"
@@ -291,9 +293,10 @@ export function evaluate(s) {
     ["arena_master", "reward_arena"],
   ])
     if (s.inventory.specialItems[key]) s.inventory.clothing[id] = 1;
+  const animalMax = subjectMax("animals");
   for (let i = 0; i < ANIMALS.length; i++) {
     const id = ANIMALS[i].id,
-      level = Math.ceil((i + 1) / 2);
+      level = Math.max(1, Math.ceil(((i + 1) * animalMax) / ANIMALS.length));
     if (
       s.learning.animals.levels[level]?.stars &&
       !s.collections.animals.includes(id)
@@ -346,7 +349,8 @@ export function finishLearning(s, subject, level, correct) {
   );
   const coins = [0, 0, 0, 20, 30, 45][correct];
   s.progression.coins += coins;
-  if (first && level % 5 === 0) s.progression.tickets++;
+  const ticket = first && (level % 5 === 0 || level === maxLevel);
+  if (ticket) s.progression.tickets++;
   if (first && level === maxLevel)
     s.inventory.specialItems["subject_" + subject] = 1;
   metric(s, "learning");
@@ -354,7 +358,7 @@ export function finishLearning(s, subject, level, correct) {
     stars,
     added: Math.max(0, stars - old.stars),
     coins,
-    ticket: first && level % 5 === 0,
+    ticket,
   };
 }
 export function finishTyping(s, mode, level, result) {
@@ -465,49 +469,39 @@ export function startDig(s, area) {
   if (s.progression.tickets < 1)
     throw Error("ちけっとは がっこうのふしめや きょうのたからばこでもらえるよ");
   s.progression.tickets--;
-  return (s.dinosaurs.trip = { area, remaining: 4 });
+  return (s.dinosaurs.trip = { area, remaining: 3 });
 }
 export function digReward(s, rng = Math.random) {
   const trip = s.dinosaurs.trip;
   if (!trip || trip.remaining <= 0) throw Error("はっくつがありません");
   const ds = s.dinosaurs;
-  let result;
-  const all = DINOS.filter(
-      (d) =>
-        d.area === trip.area && (ds.completedCount > 0 || d.id === "dino_01"),
-    ).flatMap((d) => d.parts.map((part) => ({ d, part }))),
-    fresh = all.filter((x) => !ds.fossilBook[x.d.id]?.parts.includes(x.part)),
-    duplicates = all.filter((x) =>
-      ds.fossilBook[x.d.id]?.parts.includes(x.part),
-    );
-  if (rng() < 0.75) {
-    const wantNew =
-      fresh.length && (ds.pity >= 5 || !duplicates.length || rng() < 0.65);
-    const selected = weighted(
-        wantNew ? fresh : duplicates.length ? duplicates : all,
-        () => 1,
-        rng,
-      ),
-      { d, part } = selected;
-    const book = (ds.fossilBook[d.id] ??= { parts: [], completed: false });
-    const isNew = !book.parts.includes(part);
-    if (isNew) {
-      book.parts.push(part);
-      ds.pity = 0;
-    } else {
-      ds.pity++;
-      s.progression.coins += 20;
-    }
-    result = { d, part, isNew, coins: isNew ? 0 : 20 };
+  const candidates = DINOS.filter(
+    (d) => d.area === trip.area && (ds.completedCount > 0 || d.id === "dino_01"),
+  );
+  if (!candidates.length) throw Error("みつけられる きょうりゅうが いません");
+  const unseen = candidates.filter((d) => !ds.fossilBook[d.id]?.completed);
+  const useUnseen = unseen.length && (ds.pity >= 2 || rng() < 0.75);
+  const d = weighted(useUnseen ? unseen : candidates, () => 1, rng);
+  const book = (ds.fossilBook[d.id] ??= { parts: [], completed: false });
+  const isNew = !book.completed;
+  let coins = 0;
+  if (isNew) {
+    book.parts = [...d.parts];
+    book.completed = true;
+    book.completedAt = new Date().toISOString();
+    ds.completedCount++;
+    ds.pity = 0;
+    s.inventory.specialItems["figure_" + d.id] = 1;
+    remember(s, "dinosaur", d.name + " ふくげん！", d.id);
   } else {
     ds.pity++;
-    s.progression.coins += 15;
-    result = { coins: 15 };
+    coins = 25;
+    s.progression.coins += coins;
   }
   trip.remaining--;
   if (!trip.remaining) ds.trip = null;
   metric(s, "dig");
-  return result;
+  return { d, isNew, coins };
 }
 export function restoreDinosaur(s, id) {
   const d = DINOS.find((d) => d.id === id),

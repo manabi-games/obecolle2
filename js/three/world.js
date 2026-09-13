@@ -37,17 +37,26 @@ export class World {
     this.clock = 0;
     this.last = performance.now();
     this.paused = false;
+    this.interactionsEnabled = true;
     this.onFrame = null;
     this.resize();
     window.addEventListener("resize", () => this.resize());
     canvas.addEventListener("pointermove", (e) => this.hover(e));
     canvas.addEventListener("click", (e) => {
+      if (!this.interactionsEnabled) return;
       const hit = this.pick(e);
       if (hit) this.onSelect(hit);
     });
     this.set("title", null);
     this.frame = this.frame.bind(this);
     requestAnimationFrame(this.frame);
+  }
+  setInteractionsEnabled(enabled) {
+    this.interactionsEnabled = !!enabled;
+    if (!this.interactionsEnabled) {
+      this.hovered = null;
+      this.canvas.style.cursor = "default";
+    }
   }
   resize() {
     const w = innerWidth,
@@ -712,6 +721,7 @@ export class World {
     });
   }
   pick(e) {
+    if (!this.interactionsEnabled) return null;
     this.pointer.set(
       (e.clientX / innerWidth) * 2 - 1,
       (-e.clientY / innerHeight) * 2 + 1,
@@ -728,6 +738,7 @@ export class World {
     return null;
   }
   hover(e) {
+    if (!this.interactionsEnabled) return;
     const id = this.pick(e);
     this.hovered = id;
     this.canvas.style.cursor = id ? "pointer" : "default";
@@ -870,7 +881,9 @@ export class World {
       l.element.style.left = (p.x * 0.5 + 0.5) * innerWidth + "px";
       l.element.style.top = (-p.y * 0.5 + 0.5) * innerHeight + "px";
       l.element.style.display =
-        p.z > 1 || (l.hoverOnly && this.hovered !== l.id) ? "none" : "";
+        !this.interactionsEnabled || p.z > 1 || (l.hoverOnly && this.hovered !== l.id)
+          ? "none"
+          : "";
     }
     if (dt > 0.04) {
       this.slow = (this.slow || 0) + dt;

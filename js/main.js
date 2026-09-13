@@ -83,6 +83,7 @@ class Game {
   }
   panel(html, cls = "") {
     this.walkKeys.clear();
+    this.world.setInteractionsEnabled(false);
     this.screen.innerHTML = `<section class="panel ${cls}">${html}</section>`;
     document.querySelector("#labels").classList.add("hidden");
   }
@@ -97,6 +98,7 @@ class Game {
     this.world.paused = false;
     this.scene = name;
     this.world.set(name, this.s, params);
+    this.world.setInteractionsEnabled(true);
     this.audio.setScene(name);
     this.screen.innerHTML = "";
     this.hudUpdate();
@@ -135,7 +137,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.1.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.2.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -462,12 +464,6 @@ class Game {
     );
     if (next && this.s.progression.manabiRank >= 2)
       return `あと ${Math.max(0, next.threshold - this.s.typing.buddyPower)} なかまぱわーで、あたらしいともだち！`;
-    const ready = D.DINOS.find(
-      (d) =>
-        this.s.dinosaurs.fossilBook[d.id]?.parts.length === 4 &&
-        !this.s.dinosaurs.fossilBook[d.id].completed,
-    );
-    if (ready) return ready.name + "をふくげんしよう！";
     const rank = this.s.progression.manabiRank;
     if (rank < 10)
       return `がっこうであと ${D.RANKS[rank] - this.s.progression.stars}すたー！ らんく${rank + 1}へ`;
@@ -492,6 +488,8 @@ class Game {
   say(name, text, choices = [["つづける", "closedialog"]]) {
     this.modalOpen = true;
     this.world.paused = false;
+    this.world.setInteractionsEnabled(false);
+    document.querySelector("#labels").classList.add("hidden");
     this.dialog.innerHTML = `<div class="dialog"><h2>${E(name)}</h2><p>${E(text)}</p><div class="row">${choices
       .slice(0, 3)
       .map(([label, a]) => `<button data-a="${a}">${E(label)}</button>`)
@@ -501,6 +499,9 @@ class Game {
     this.dialog.innerHTML = "";
     this.modalOpen = false;
     this.world.paused = false;
+    const panelOpen = !!this.screen.querySelector(".panel");
+    this.world.setInteractionsEnabled(!panelOpen);
+    document.querySelector("#labels").classList.toggle("hidden", panelOpen);
   }
   async friend(id) {
     if (!this.s.friends[id]) return;
@@ -619,7 +620,7 @@ class Game {
     this.closeDialog();
     const b = this.s.learning[subject];
     this.panel(
-      `<h2>${D.SUBJECTS.find((x) => x.id === subject).name}</h2><div class="grid" style="grid-template-columns:repeat(5,1fr)">${Array.from({ length: D.SUBJECTS.find((x) => x.id === subject).maxLevel }, (_, i) => `<button data-a="quiz:${subject}:${i + 1}" ${i + 1 > b.unlocked ? "disabled" : ""}>Lv ${i + 1}${LEARNING_STEPS[subject] ? `<small class="step-title">${LEARNING_STEPS[subject][i]}</small>` : ""}<small style="display:block">${"★".repeat(b.levels[i + 1]?.stars || 0)}${"☆".repeat(3 - (b.levels[i + 1]?.stars || 0))}</small></button>`).join("")}</div><p class="muted">★はいちばんのきろくだけたす。Lv5ごとのはじめてくりあでちけっと！</p><button data-a="school">がくしゅうをえらぶ</button>`,
+      `<h2>${D.SUBJECTS.find((x) => x.id === subject).name}</h2><div class="grid level-grid">${Array.from({ length: D.SUBJECTS.find((x) => x.id === subject).maxLevel }, (_, i) => `<button data-a="quiz:${subject}:${i + 1}" ${i + 1 > b.unlocked ? "disabled" : ""}>Lv ${i + 1}${LEARNING_STEPS[subject] ? `<small class="step-title">${LEARNING_STEPS[subject][i]}</small>` : ""}<small style="display:block">${"★".repeat(b.levels[i + 1]?.stars || 0)}${"☆".repeat(3 - (b.levels[i + 1]?.stars || 0))}</small></button>`).join("")}</div><p class="muted">★はいちばんのきろくだけたす。Lv5ごとのはじめてくりあでちけっと！</p><button data-a="school">がくしゅうをえらぶ</button>`,
     );
   }
   typingLab() {
@@ -650,13 +651,8 @@ class Game {
   }
   excavation() {
     this.setScene("excavation");
-    const ready = D.DINOS.filter(
-      (d) =>
-        this.s.dinosaurs.fossilBook[d.id]?.parts.length === 4 &&
-        !this.s.dinosaurs.fossilBook[d.id].completed,
-    );
     this.panel(
-      `<h2>はっくつしま</h2><p>ちけっと1まいで4ばしょ。ぱーつをあつめてふくげんしよう！</p>${this.s.dinosaurs.trip ? `<button class="primary" data-a="digstart:${this.s.dinosaurs.trip.area}">のこり${this.s.dinosaurs.trip.remaining}ばしょのちょうさをつづける</button>` : ""}<div class="grid three">${D.DIG_AREAS.map((a) => `<button data-a="digstart:${a.id}" ${this.s.dinosaurs.unlockedAreas.includes(a.id) ? "" : "disabled"}>${a.name}<small style="display:block">Rank${a.rank}${a.completed ? "・ふくげん" + a.completed + "しゅるい" : ""}</small></button>`).join("")}</div><h3>ふくげんらぼ</h3><div class="row">${ready.map((d) => `<button class="primary" data-a="restore:${d.id}">${d.name}をふくげん</button>`).join("") || '<span class="muted">あたま・どうたい・あし・しっぽをあつめよう。</span>'}</div><p><button data-a="island">しまへ</button> <button data-a="book:dinosaurs">きょうりゅうずかん</button></p>`,
+      `<h2>はっくつしま</h2><p>ちけっと1まいで 3かい はっくつ。きらきらを えらんで、かせきから きょうりゅうを みつけよう！</p>${this.s.dinosaurs.trip ? `<button class="primary" data-a="digstart:${this.s.dinosaurs.trip.area}">のこり${this.s.dinosaurs.trip.remaining}かいの はっくつを つづける</button>` : ""}<div class="grid three">${D.DIG_AREAS.map((a) => `<button data-a="digstart:${a.id}" ${this.s.dinosaurs.unlockedAreas.includes(a.id) ? "" : "disabled"}>${a.name}<small style="display:block">Rank${a.rank}${a.completed ? "・ふくげん" + a.completed + "しゅるい" : ""}</small></button>`).join("")}</div><p class="muted">1かいの はっくつは 20〜30びょう。はんまー3かい → ぶらしで みつけよう。</p><p><button data-a="island">しまへ</button> <button data-a="book:dinosaurs">きょうりゅうずかん</button></p>`,
     );
   }
   ownedCreatures() {
@@ -870,7 +866,7 @@ class Game {
     const hints = {
       friends: "たいぴんぐ・がくしゅう・あつめるで…",
       fish: "つりばをひろげよう",
-      dinosaurs: "4ぱーつをあつめてふくげんしよう",
+      dinosaurs: "はっくつで かせきをみつけよう",
       animals: "いきもののがくしゅうで…",
       cards: "ありーなでかつと…",
       trophies: "がくしゅう・たいかい・できたことで…",
@@ -906,7 +902,11 @@ class Game {
         : `${D.FISH_AREAS.find((a) => a.id === x.area).name}にいるさかなだよ`;
     } else if (category === "dinosaurs") {
       const b = this.s.dinosaurs.fossilBook[id];
-      text = `${x.parts.map((p) => (b?.parts.includes(p) ? "✓" : "○") + D.PART_NAMES[p]).join("　")}\n${b?.completed ? x.fact + "\nたべもの：" + x.food + "\nできたひ：" + b.completedAt.slice(0, 10) : "4つのぱーつをあつめよう"}`;
+      text = b?.completed
+        ? `${x.fact}\nたべもの：${x.food}\nみつけたひ：${b.completedAt.slice(0, 10)}`
+        : b?.parts?.length
+          ? `まえの ばーじょんで ${b.parts.length}/4ぱーつまで みつけたよ。\nつぎの はっくつで まるごと ふくげんできるよ。`
+          : "まだ ふくげんまえ。はっくつで かせきを みつけよう。";
     } else if (category === "friends") {
       text = this.s.friends[id]
         ? `${x.personality} ／ ${this.hearts(this.s.friends[id].affinity)}\n${x.favoriteActivity}がすき`
@@ -1014,11 +1014,15 @@ class Game {
     this.walkKeys.clear();
     this.modalOpen = true;
     this.world.paused = true;
+    this.world.setInteractionsEnabled(false);
+    document.querySelector("#labels").classList.add("hidden");
     this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>ひとやすみ</h2><div class="grid two"><button class="primary" data-a="resume">つづける</button><button data-a="settings">せってい</button>${this.activity ? '<button data-a="restartactivity">やりなおす</button><button data-a="quitactivity">やめる</button>' : ""}<button data-a="export">ばっくあっぷ</button><button data-a="confirmtitle">たいとるへ</button></div></section></div>`;
   }
   settings() {
     this.modalOpen = true;
     this.world.paused = true;
+    this.world.setInteractionsEnabled(false);
+    document.querySelector("#labels").classList.add("hidden");
     this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>せってい</h2><p><label>BGM <input type="range" min="0" max="1" step=".05" value="${this.s.settings.music}" data-setting="music"></label></p><p><label>おと <input type="range" min="0" max="1" step=".05" value="${this.s.settings.sound}" data-setting="sound"></label></p><p>がめんのきれいさ <select data-setting="quality">${[
       ["low", "かるい"],
       ["standard", "ふつう"],
@@ -1399,11 +1403,14 @@ class Game {
       case "nextdig":
         this.digSite();
         break;
-      case "digtool":
-        this.digTool(b);
+      case "digspot":
+        this.chooseDigSpot(+b);
         break;
-      case "digcell":
-        await this.digCell(+b);
+      case "dighammer":
+        this.digHammer();
+        break;
+      case "digbrush":
+        await this.digBrush();
         break;
       case "restore":
         this.restoration(b);

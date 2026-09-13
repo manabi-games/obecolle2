@@ -2,6 +2,16 @@ export const RANKS = [0, 1, 6, 15, 30, 50, 75, 105, 140, 180];
 export const BUDDY = [
   100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250, 3850, 4500,
 ];
+const SUBJECT_LEVELS = {
+  math: 12,
+  japanese: 10,
+  clock: 6,
+  money: 6,
+  english: 8,
+  fish: 6,
+  dinosaurs: 6,
+  animals: 6,
+};
 export const SUBJECTS = [
   ["math", "さんすう", "＋"],
   ["japanese", "こくご", "あ"],
@@ -15,7 +25,7 @@ export const SUBJECTS = [
   id,
   name,
   icon,
-  maxLevel: ["clock", "money"].includes(id) ? 10 : 20,
+  maxLevel: SUBJECT_LEVELS[id],
 }));
 export const FACILITIES = [
   ["mansion", "おべこれまんしょん", 1, 0, -8, "#f6c887"],
