@@ -5,7 +5,7 @@ import { AudioManager } from "./core/audio.js";
 import { World } from "./three/world.js";
 import { games } from "./games.js";
 import { validateTyping } from "./systems/typing.js";
-import { doors, walkable, findPath } from "./systems/walking.js";
+import { doors, walkable, findPath, findPathToDoor } from "./systems/walking.js";
 import { FISH_ART, NEW_FISH_IDS } from "./data/art.js";
 import { LEARNING_STEPS } from "./systems/focused-learning.js";
 import { EYE_NAMES, eyePreview } from "./ui-face.js";
@@ -110,7 +110,7 @@ class Game {
       return;
     }
     const p = this.s.progression;
-    this.hud.innerHTML = `<div class="profile">${E(this.s.player.name)}<small>まなびらんく ${p.manabiRank} ／ ともだち ${Object.keys(this.s.friends).length}にん</small></div><div class="wallet"><span>◉ ${p.coins}</span><span>★ ${p.stars}</span><span>ちけっと ${p.tickets}</span></div><div class="hud-actions"><button data-a="collection">これくしょん</button><button data-a="missions">きょうのやること</button><button data-a="pause">☰</button></div>`;
+    this.hud.innerHTML = `<div class="profile">${E(this.s.player.name)}<small>まなびらんく ${p.manabiRank} ／ ともだち ${Object.keys(this.s.friends).length}にん</small></div><div class="wallet"><span>◉ ${p.coins}</span><span>★ ${p.stars}</span><span>ちけっと ${p.tickets}</span></div><div class="hud-actions"><button class="home-action" data-a="quickhome">🏝 しま</button><button data-a="collection">これくしょん</button><button data-a="missions">きょうのやること</button><button data-a="pause">☰</button></div>`;
   }
   async commit() {
     const start = this.s.memories.length,
@@ -137,7 +137,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.2.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.3.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -180,7 +180,7 @@ class Game {
         (_, i) => `<option value="${i}">${names?.[i] || i + 1}</option>`,
       ).join("");
     this.panel(
-      `<h2>${editing ? "じぶんを あれんじ" : "きみは どんなこ？"}</h2><div class="appearance-row"><label>なまえ</label><input id="player-name" maxlength="16" value="${editing ? E(this.draft.name) : ""}" placeholder="8もじまで"></div>${[
+      `<h2>${editing ? "じぶんを あれんじ" : "きみは どんなこ？"}</h2><div class="appearance-row"><label>なまえ</label><input id="player-name" maxlength="8" value="${editing ? E(this.draft.name) : ""}" placeholder="8もじまで"></div>${[
         [
           "skin",
           "はだ",
@@ -362,9 +362,17 @@ class Game {
     ) {
       const door = doors.find((f) => f.id === action);
       if (door) {
-        this.walkPath = findPath(this.world.hero.position, door);
-        this.walkDestination = door.id;
+        const route = findPathToDoor(this.world.hero.position, door);
         this.walkKeys.clear();
+        if (!route.length) {
+          this.walkDestination = null;
+          this.toast(`${door.name}へ はいるよ`);
+          this.action(door.id).catch((e) => this.error(e));
+          return;
+        }
+        this.walkPath = route;
+        this.walkDestination = door.id;
+        this.toast(`${door.name}へ いくよ！`);
         return;
       }
       const person = this.world.targets.find(
@@ -448,11 +456,7 @@ class Game {
         : "いりぐちへ あるこう";
       if (button.textContent !== label) button.textContent = label;
     }
-    if (
-      this.walkDestination &&
-      !this.walkPath.length &&
-      this.nearDoor?.id === this.walkDestination
-    ) {
+    if (this.walkDestination && !this.walkPath.length) {
       const dest = this.walkDestination;
       this.walkDestination = null;
       this.action(dest).catch((e) => this.error(e));
@@ -620,7 +624,7 @@ class Game {
     this.closeDialog();
     const b = this.s.learning[subject];
     this.panel(
-      `<h2>${D.SUBJECTS.find((x) => x.id === subject).name}</h2><div class="grid level-grid">${Array.from({ length: D.SUBJECTS.find((x) => x.id === subject).maxLevel }, (_, i) => `<button data-a="quiz:${subject}:${i + 1}" ${i + 1 > b.unlocked ? "disabled" : ""}>Lv ${i + 1}${LEARNING_STEPS[subject] ? `<small class="step-title">${LEARNING_STEPS[subject][i]}</small>` : ""}<small style="display:block">${"★".repeat(b.levels[i + 1]?.stars || 0)}${"☆".repeat(3 - (b.levels[i + 1]?.stars || 0))}</small></button>`).join("")}</div><p class="muted">★はいちばんのきろくだけたす。Lv5ごとのはじめてくりあでちけっと！</p><button data-a="school">がくしゅうをえらぶ</button>`,
+      `<h2>${D.SUBJECTS.find((x) => x.id === subject).name}</h2><div class="grid level-grid">${Array.from({ length: D.SUBJECTS.find((x) => x.id === subject).maxLevel }, (_, i) => `<button data-a="quiz:${subject}:${i + 1}" ${i + 1 > b.unlocked ? "disabled" : ""}>Lv ${i + 1}${LEARNING_STEPS[subject] ? `<small class="step-title">${LEARNING_STEPS[subject][i]}</small>` : ""}<small style="display:block">${"★".repeat(b.levels[i + 1]?.stars || 0)}${"☆".repeat(3 - (b.levels[i + 1]?.stars || 0))}</small></button>`).join("")}</div><p class="muted">★はいちばんのきろくだけたす。Lv5ごと・さいごのLvの はじめてくりあで ちけっと！</p><button data-a="school">がくしゅうをえらぶ</button>`,
     );
   }
   typingLab() {
@@ -628,9 +632,10 @@ class Game {
     const t = this.s.typing,
       next = D.FRIENDS.find(
         (f) => f.route === "typing" && !this.s.friends[f.id],
-      );
+      ),
+      nextMode = D.TYPING_MODES.find((m) => m.level > t.level);
     this.panel(
-      `<h2>たいぴんぐけんきゅうじょ</h2><div class="row spread"><span class="pill">Lv ${t.level} / 20</span><b>なかまぱわー ${t.buddyPower}</b></div><p>${next ? `あと ${Math.max(0, next.threshold - t.buddyPower)}で あたらしいともだち！` : "たいぴんぐのともだち ぜんいんとうちゃく！"}</p><div class="grid two">${D.TYPING_MODES.map((m) => `<button data-a="type:${m.id}" ${t.level < m.level ? "disabled" : ""}>${m.name}${t.level < m.level ? " 🔒Lv" + m.level : ""}</button>`).join("")}</div><p>きほんのれべる <select id="typing-level">${Array.from({ length: t.level }, (_, i) => `<option value="${i + 1}" ${i + 1 === t.level ? "selected" : ""}>Lv ${i + 1}</option>`).join("")}</select></p><p><button data-a="island">しまへ</button></p>`,
+      `<h2>たいぴんぐけんきゅうじょ</h2><div class="row spread"><span class="pill">きほん Lv ${t.level} / 20</span><b>なかまぱわー ${t.buddyPower}</b></div><div class="typing-goal"><strong>つぎは「きほん Lv ${t.level}」を くりあしよう</strong><small>${nextMode ? `${nextMode.name}は きほんLv${nextMode.level - 1}を くりあすると OPEN！` : "ぜんぶの あそびが OPENしているよ！"}</small><button class="primary" data-a="typelevel:basic:${t.level}">きほん Lv ${t.level}を はじめる</button></div><p>${next ? `あと ${Math.max(0, next.threshold - t.buddyPower)} なかまぱわーで あたらしいともだち！` : "たいぴんぐのともだち ぜんいんとうちゃく！"}</p><div class="grid two">${D.TYPING_MODES.filter((m) => m.id !== "basic").map((m) => `<button data-a="typelevel:${m.id}:${t.level}" ${t.level < m.level ? "disabled" : ""}>${m.name}<small>${t.level < m.level ? `🔒 きほんLv${m.level - 1}を くりあでOPEN` : "OPEN！"}</small></button>`).join("")}</div><div class="typing-replay"><label>まえの きほんLvを れんしゅう <select id="typing-level">${Array.from({ length: t.level }, (_, i) => `<option value="${i + 1}" ${i + 1 === t.level ? "selected" : ""}>Lv ${i + 1}</option>`).join("")}</select></label><button data-a="typeselected">えらんだLvを やる</button></div>`,
       "small",
     );
   }
@@ -1016,7 +1021,7 @@ class Game {
     this.world.paused = true;
     this.world.setInteractionsEnabled(false);
     document.querySelector("#labels").classList.add("hidden");
-    this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>ひとやすみ</h2><div class="grid two"><button class="primary" data-a="resume">つづける</button><button data-a="settings">せってい</button>${this.activity ? '<button data-a="restartactivity">やりなおす</button><button data-a="quitactivity">やめる</button>' : ""}<button data-a="export">ばっくあっぷ</button><button data-a="confirmtitle">たいとるへ</button></div></section></div>`;
+    this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>ひとやすみ</h2><div class="grid two"><button class="primary" data-a="resume">つづける</button><button data-a="settings">せってい</button>${this.activity ? '<button data-a="restartactivity">やりなおす</button><button data-a="quitactivity">やめる</button>' : ""}<button data-a="quickhome">🏝 しまへ</button><button data-a="export">ばっくあっぷ</button><button data-a="confirmtitle">たいとるへ</button></div></section></div>`;
   }
   settings() {
     this.modalOpen = true;
@@ -1034,7 +1039,7 @@ class Game {
       )
       .join(
         "",
-      )}</select></p><p><label><input type="checkbox" data-setting="keyboard" ${this.s.settings.keyboard ? "checked" : ""}> きーぼーどがいど</label></p><div class="row"><button data-a="export">JSONほぞん</button><button data-a="importslot:${this.s.meta.slotId}">JSONふくげん</button><button data-a="fullscreen">がめんをおおきく</button><button class="primary" data-a="resume">もどる</button></div></section></div>`;
+      )}</select></p><p><label><input type="checkbox" data-setting="keyboard" ${this.s.settings.keyboard ? "checked" : ""}> きーぼーどがいど</label></p><div class="row"><button data-a="export">JSONほぞん</button><button data-a="importslot:${this.s.meta.slotId}">JSONふくげん</button><button data-a="quickhome">🏝 しまへ</button><button data-a="fullscreen">がめんをおおきく</button><button class="primary" data-a="resume">もどる</button></div></section></div>`;
   }
   async importSlot(slot) {
     const input = document.createElement("input");
@@ -1258,6 +1263,7 @@ class Game {
       this.modalOpen &&
       ![
         "pause",
+        "quickhome",
         "settings",
         "export",
         "importslot",
@@ -1316,6 +1322,18 @@ class Game {
         break;
       case "arrive":
         await this.arrive();
+        break;
+      case "quickhome":
+        if (this.activity) {
+          this.say(
+            "しまへ もどる？",
+            "いまの あそびを とじて しまへ もどるよ。つり・はっくつの のこりは そのまま のこるよ。",
+            [
+              ["しまへ もどる", "quitactivity"],
+              ["つづける", "closedialog"],
+            ],
+          );
+        } else this.island();
         break;
       case "island":
         this.island();
@@ -1381,6 +1399,15 @@ class Game {
         break;
       case "type":
         this.startTyping(b, +document.querySelector("#typing-level").value);
+        break;
+      case "typelevel":
+        this.startTyping(b, +c);
+        break;
+      case "typeselected":
+        this.startTyping("basic", +document.querySelector("#typing-level").value);
+        break;
+      case "speakquestion":
+        this.speakQuestion();
         break;
       case "fishing":
         this.fishing();

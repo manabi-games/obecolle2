@@ -28,6 +28,8 @@ export const games = {
       index: 0,
       correct: 0,
       answered: false,
+      streak: 0,
+      bestStreak: 0,
       callback,
     };
     this.world.set("quiz", this.s);
@@ -39,9 +41,10 @@ export const games = {
     const a = this.activity,
       q = a.questions[a.index];
     a.answered = false;
+    this.audio.stopSpeech?.();
     this.world.set("quiz", this.s, { creatureId: q.creature });
     this.panel(
-      `<div class="row spread"><span class="pill">${a.callback ? "ありーな" : SUBJECTS.find((x) => x.id === a.subject).name + " Lv" + a.level}</span><b>${a.index + 1} / 5</b><button data-a="pause">Ⅱ</button></div><div class="progress-track"><div style="width:${a.index * 20}%"></div></div><div class="question">${E(q.text)}</div>${this.questionVisual(q)}<div class="answers">${q.options.map((v, i) => `<button data-a="answer:${i}">${E(v)}</button>`).join("")}</div><div id="feedback" class="feedback"></div>`,
+      `<div class="row spread"><span class="pill">${a.callback ? "ありーな" : SUBJECTS.find((x) => x.id === a.subject).name + " Lv" + a.level}</span><b>${a.index + 1} / 5</b><button data-a="pause">Ⅱ</button></div><div class="progress-track"><div style="width:${a.index * 20}%"></div></div><div class="question">${E(q.text)}</div>${this.questionVisual(q)}${q.speak ? '<div class="voice-row"><button class="voice-button" data-a="speakquestion">🔊 こえを きく</button><small>なんどでも きけるよ</small></div>' : ""}<div class="answers">${q.options.map((v, i) => `<button data-a="answer:${i}">${E(v)}</button>`).join("")}</div><div id="feedback" class="feedback" aria-live="polite"></div>`,
       "small",
     );
   },
@@ -66,19 +69,40 @@ export const games = {
       return `<div class="emoji-visual" role="img" aria-label="いきもの">${E(q.emoji)}</div>`;
     return "";
   },
+  speakQuestion() {
+    const a = this.activity;
+    const q = a?.kind === "quiz" ? a.questions[a.index] : null;
+    if (!q?.speak) return;
+    if (!this.audio.speak(q.speak, q.speakLang || "en-US"))
+      this.toast("この ぶらうざでは こえを だせなかったよ");
+  },
   async answer(index) {
     const a = this.activity;
     if (a?.kind !== "quiz" || a.answered) return;
     const q = a.questions[a.index];
     a.answered = true;
+    this.audio.stopSpeech?.();
     const ok = q.options[index] === q.answer;
-    if (ok) a.correct++;
+    if (ok) {
+      a.correct++;
+      a.streak++;
+      a.bestStreak = Math.max(a.bestStreak, a.streak);
+    } else a.streak = 0;
     this.audio.effect(ok ? "correct" : "miss");
-    document
-      .querySelectorAll(".answers button")
-      .forEach((b) => (b.disabled = true));
+    const buttons = [...document.querySelectorAll(".answers button")];
+    buttons.forEach((button, i) => {
+      button.disabled = true;
+      if (q.options[i] === q.answer) button.classList.add("correct-answer");
+      if (i === index && !ok) button.classList.add("wrong-answer");
+    });
+    const mark = document.createElement("div");
+    mark.className = `answer-mark ${ok ? "correct" : "wrong"}`;
+    mark.textContent = ok ? "○" : "×";
+    document.body.append(mark);
+    setTimeout(() => mark.remove(), 850);
+    const streak = ok && a.streak >= 2 ? `<b class="streak">${a.streak}れんぞく！</b>` : "";
     document.querySelector("#feedback").innerHTML =
-      `${ok ? "せいかい！" : "おしい！"} ${E(q.explanation)} <button class="muted-button" data-a="quiznext">つぎへ ▸</button>`;
+      `<strong class="${ok ? "feedback-ok" : "feedback-ng"}">${ok ? "せいかい！" : "おしい！"}</strong>${streak}<span>${E(q.explanation)}</span><button class="primary quiz-next" data-a="quiznext">つぎへ ▸</button>`;
     document.querySelector("[data-a=quiznext]").focus();
   },
   async quizNext() {
@@ -98,7 +122,7 @@ export const games = {
         ? ""
         : `<button class="primary" data-a="quiz:${a.subject}:${a.level}">もういちど</button>`;
     this.panel(
-      `<div class="result"><h2>${passed ? "よく がんばったね！" : "もういちど やってみよう"}</h2><div class="stars">${"★".repeat(reward.stars)}${"☆".repeat(3 - reward.stars)}</div><p>5もんのうち ${a.correct}もん せいかい</p><p>＋${reward.coins} こいん ／ あたらしいすたー ＋${reward.added}${reward.ticket ? " ／ ちけっと ＋1" : ""}</p><p class="muted">${passed ? (a.level >= subject.maxLevel ? "この きょうかは さいごまで できたね！" : "つぎのれべるが ひらいたよ。") : "まちがえたところを、ゆっくり れんしゅうしよう。"}</p><div class="result-actions">${primary}<button data-a="levels:${a.subject}">きょうかをえらぶ</button><button class="muted-button" data-a="island">しまへ</button></div></div>`,
+      `<div class="result"><h2>${passed ? "よく がんばったね！" : "もういちど やってみよう"}</h2><div class="stars">${"★".repeat(reward.stars)}${"☆".repeat(3 - reward.stars)}</div><p>5もんのうち ${a.correct}もん せいかい</p><p>＋${reward.coins} こいん ／ あたらしいすたー ＋${reward.added}${reward.ticket ? " ／ ちけっと ＋1" : ""}</p><p class="muted">${passed ? (a.level >= subject.maxLevel ? "この きょうかは さいごまで できたね！" : "つぎのれべるが ひらいたよ。") : "まちがえたところを、ゆっくり れんしゅうしよう。"}</p><div class="result-actions">${primary}<button data-a="school">きょうかをえらぶ</button><button class="muted-button" data-a="island">しまへ</button></div></div>`,
       "small",
     );
   },
@@ -212,11 +236,22 @@ export const games = {
       this.typingLab();
       return;
     }
+    const beforeLevel = this.s.typing.level;
     const reward = rules.finishTyping(this.s, a.mode, a.level, result);
+    const afterLevel = this.s.typing.level;
+    const clearedBasic =
+      a.mode === "basic" && result.accuracy >= 60 && result.words >= 5;
+    const opened = TYPING_MODES.filter(
+      (m) => m.level > beforeLevel && m.level <= afterLevel,
+    );
     await this.commit();
     this.world.hero?.setState("victory");
+    const nextBasic =
+      clearedBasic && afterLevel > a.level && a.level < 20
+        ? `<button class="primary" data-a="typelevel:basic:${a.level + 1}">つぎの Lv ${a.level + 1}へ</button>`
+        : "";
     this.panel(
-      `<div class="result"><h2>${reward.isBest ? "じぶんべすと！" : "おつかれさま！"}</h2><div class="stars">${result.score}てん</div><p>せいかくさ ${result.accuracy.toFixed(0)}% ／ 1ぷんで ${result.speed.toFixed(0)}もじ</p><p>いちばん ${result.combo}こんぼ ／ ${result.words}ご</p><h3>なかまぱわー ＋${reward.power}</h3><p>${a.mode === "basic" && result.accuracy >= 60 && result.words >= 5 ? "れべるくりあ！" : "すくしずつ、じょうずになろう。"}</p><div class="row"><button data-a="typing">けんきゅうじょへ</button><button class="primary" data-a="island">しまへ</button></div></div>`,
+      `<div class="result"><h2>${reward.isBest ? "じぶんべすと！" : "おつかれさま！"}</h2><div class="stars">${result.score}てん</div><p>せいかくさ ${result.accuracy.toFixed(0)}% ／ 1ぷんで ${result.speed.toFixed(0)}もじ</p><p>いちばん ${result.combo}こんぼ ／ ${result.words}ご</p><h3>なかまぱわー ＋${reward.power}</h3>${clearedBasic ? `<div class="typing-clear">✓ きほん Lv ${a.level} くりあ！</div>` : '<p>きほんは 5ご・せいかくさ60%以上で つぎのLvがひらくよ。</p>'}${opened.length ? `<div class="unlock-banner">🎉 ${opened.map((m) => m.name).join("・")} OPEN！</div>` : ""}<div class="result-actions">${nextBasic}<button data-a="typing">けんきゅうじょへ</button><button class="muted-button" data-a="island">しまへ</button></div></div>`,
       "small",
     );
   },

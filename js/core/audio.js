@@ -56,6 +56,24 @@ export class AudioManager {
       this.sound * 0.12,
     );
   }
+  stopSpeech() {
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+  }
+  speak(text, lang = "en-US") {
+    if (!text || typeof speechSynthesis === "undefined" || typeof SpeechSynthesisUtterance === "undefined")
+      return false;
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(String(text));
+    utterance.lang = lang;
+    utterance.rate = 0.78;
+    utterance.pitch = 1;
+    utterance.volume = Math.max(0, Math.min(1, this.sound));
+    const voices = speechSynthesis.getVoices?.() || [];
+    const voice = voices.find((v) => v.lang?.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()));
+    if (voice) utterance.voice = voice;
+    speechSynthesis.speak(utterance);
+    return true;
+  }
   setScene(name) {
     if (this.scene === name) return;
     this.scene = name;

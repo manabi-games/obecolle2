@@ -1,4 +1,4 @@
-export const RANKS = [0, 1, 6, 15, 30, 50, 75, 105, 140, 180];
+export const RANKS = [0, 1, 5, 10, 18, 28, 40, 52, 64, 75];
 export const BUDDY = [
   100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700, 3250, 3850, 4500,
 ];
@@ -592,10 +592,10 @@ export const ACHIEVEMENTS = Array.from({ length: 28 }, (_, i) => ({
 }));
 export const TYPING_MODES = [
   ["basic", "きほんたいぴんぐ", 1],
-  ["challenge", "30びょうちゃれんじ", 5],
-  ["rescue", "さかなれすきゅー", 7],
-  ["escape", "きょうりゅうからにげろ！", 10],
-  ["battle", "たいぴんぐばとる", 13],
+  ["challenge", "30びょうちゃれんじ", 3],
+  ["rescue", "さかなれすきゅー", 4],
+  ["escape", "きょうりゅうからにげろ！", 7],
+  ["battle", "たいぴんぐばとる", 10],
 ].map(([id, name, level]) => ({ id, name, level }));
 export const PART_NAMES = {
   head: "あたま",

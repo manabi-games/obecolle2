@@ -52,114 +52,129 @@ const SHORT_SENTENCES = [
   ["ゆいは ほんを よみました。なにを よんだ？", "ほん", ["てがみ", "ちず", "ざっし"]],
   ["りくは こうえんで いぬを みました。なにを みた？", "いぬ", ["ねこ", "とり", "さかな"]],
   ["めいは あかい かさを もちました。なにを もった？", "かさ", ["ぼうし", "くつ", "ぺん"]],
+  ["なぎは みずを のみました。なにを のんだ？", "みず", ["ぎゅうにゅう", "おちゃ", "じゅーす"]],
+  ["あおは きいろい くつを はきました。なにを はいた？", "くつ", ["ぼうし", "てぶくろ", "かさ"]],
+  ["りんは そらに とりを みつけました。なにを みつけた？", "とり", ["さかな", "いぬ", "むし"]],
+  ["かいは つくえに えんぴつを おきました。なにを おいた？", "えんぴつ", ["けしごむ", "ほん", "かさ"]],
+  ["ももは こうえんで はなを みました。なにを みた？", "はな", ["くるま", "ほん", "つき"]],
+  ["れんは あさ 7じに おきました。いつ おきた？", "あさ 7じ", ["ひる 12じ", "よる 7じ", "あさ 5じ"]],
+  ["ひなは 3にんで こうえんへ いきました。なんにん？", "3にん", ["1にん", "2にん", "5にん"]],
 ];
 
 const EN_GROUPS = ["ABCDEF", "GHIJKL", "MNOPQR", "STUVWXYZ"];
 const EN_COLORS_NUMBERS = [
   ["あか", "red"], ["あお", "blue"], ["きいろ", "yellow"], ["みどり", "green"],
-  ["1", "one"], ["2", "two"], ["3", "three"], ["4", "four"], ["5", "five"],
+  ["しろ", "white"], ["くろ", "black"], ["1", "one"], ["2", "two"],
+  ["3", "three"], ["4", "four"], ["5", "five"], ["6", "six"],
 ];
 const EN_WORDS = [
   ["ねこ", "cat"], ["いぬ", "dog"], ["さかな", "fish"], ["たいよう", "sun"],
   ["ほん", "book"], ["りんご", "apple"], ["みず", "water"], ["とり", "bird"],
+  ["くるま", "car"], ["いえ", "house"], ["つき", "moon"], ["ほし", "star"],
+  ["はな", "flower"], ["き", "tree"], ["あめ", "rain"], ["そら", "sky"],
 ];
 const EN_PHRASES = [
   ["こんにちは", "Hello"], ["ありがとう", "Thank you"], ["おはよう", "Good morning"],
-  ["さようなら", "Goodbye"], ["おやすみ", "Good night"], ["さかなが すき", "I like fish."],
+  ["さようなら", "Goodbye"], ["おやすみ", "Good night"], ["またね", "See you"],
+  ["はい", "Yes"], ["いいえ", "No"], ["おねがいします", "Please"],
+  ["さかなが すき", "I like fish."],
 ];
 
-const GOOD_FISH_IDS = new Set([
-  "fish_01", "fish_02", "fish_03", "fish_04", "fish_05", "fish_07", "fish_09", "fish_10",
-  "fish_12", "fish_15", "fish_16", "fish_17", "fish_19", "fish_20", "fish_35", "fish_39",
-  "fish_43", "fish_45", "fish_53", "fish_54", "fish_55",
-]);
-const familiarFish = () => {
-  const rows = FISH.filter((f) => GOOD_FISH_IDS.has(f.id));
-  return rows.length >= 8 ? rows : FISH.slice(0, 16);
+// Creature learning deliberately rotates its cast by level. v1.2 always started each
+// level at index 0, which made the same first five creatures appear over and over.
+const rotatePool = (rows, level, width, step) => {
+  if (!rows.length) return [];
+  const out = [];
+  const start = ((level - 1) * step) % rows.length;
+  for (let i = 0; i < Math.min(width, rows.length); i++) out.push(rows[(start + i) % rows.length]);
+  return out;
 };
-const fishFeature = {
-  めだか: "からだが ちいさい",
-  きんぎょ: "ひらひらした ひれ",
-  ふな: "こいに にた からだ",
-  こい: "くちの まわりに ひげがある",
-  どじょう: "ほそながい からだ",
-  たなご: "よこからみると ひらたい",
-  あゆ: "すっきりした からだ",
-  やまめ: "からだに もようがある",
-  にじます: "からだに てんてんもようがある",
-  うなぎ: "ながい からだ",
-  さけ: "おおきな からだと つよい しっぽ",
-  あじ: "ぎんいろの からだ",
-  いわし: "ちいさく ぎんいろの からだ",
-  まだい: "あかっぽい からだ",
-  まぐろ: "すいすい はやく およぐ かたち",
-  とびうお: "つばさのような おおきな ひれ",
-  ちょうちんあんこう: "あたまに えさを さそう ぶぶんがある",
-  りゅうぐうのつかい: "とても ながい からだ",
-  ほほじろざめ: "おおきな はと とがった からだ",
-  おにいとまきえい: "つばさのような おおきな ひれ",
-  しーらかんす: "ふとい ひれが とくちょう",
-};
-const fishFact = {
-  めだか: "いけや みずろで みられる ちいさな さかなだよ。",
-  きんぎょ: "ひとが ながいあいだ たいせつに そだててきた さかなだよ。",
-  ふな: "いけや かわで くらす みぢかな さかなだよ。",
-  こい: "いけや かわで くらすよ。くちの ひげも みてみよう。",
-  どじょう: "かわぞこや どろの ちかくで くらすことが おおいよ。",
-  たなご: "かわや いけで くらす ちいさな さかなだよ。",
-  あゆ: "かわで くらす さかな。いわに ついた こけなどを たべるよ。",
-  やまめ: "つめたい かわに くらす なかまだよ。からだの もようも みてみよう。",
-  にじます: "かわなどで くらすよ。からだの てんてんもようが めじるし。",
-  うなぎ: "ながい からだで、かわと うみの りょうほうに かかわるよ。",
-  さけ: "うみで そだち、たまごを うむため かわへ もどる なかまがいるよ。",
-  あじ: "うみで くらし、むれで およぐことが おおいよ。",
-  いわし: "うみで おおきな むれに なることが あるよ。",
-  まだい: "うみで くらす あかっぽい さかなだよ。",
-  まぐろ: "ひろい うみを はやく およぐよ。",
-  とびうお: "おおきな ひれを ひろげて、みずの うえを とぶように すすむよ。",
-  ちょうちんあんこう: "ふかい うみに すむ なかまがいるよ。あたまの ぶぶんで えさを さそうよ。",
-  りゅうぐうのつかい: "ふかい うみに すむ、とても ながい さかなだよ。",
-  ほほじろざめ: "うみで くらす おおきな さめの なかまだよ。",
-  おにいとまきえい: "おおきな ひれを はばたくように うごかして およぐよ。",
-  しーらかんす: "ふかい うみに すむ なかまで、ふとい ひれが とくちょうだよ。",
-};
+const fishPool = (level) => rotatePool(FISH, level, 14, 9);
+const dinoPool = (level) => rotatePool(DINOS, level, 10, 5);
 
-const familiarDinoNames = new Set([
-  "とりけらとぷす", "すてごさうるす", "ぶらきおさうるす", "あんきろさうるす",
-  "ぱらさうろろふす", "いぐあのどん", "てぃらのさうるす", "すぴのさうるす",
-  "ゔぇろきらぷとる", "あろさうるす", "すてぃらこさうるす", "でぃぷろどくす",
-]);
-const familiarDinos = () => {
-  const rows = DINOS.filter((d) => familiarDinoNames.has(d.name));
-  return rows.length >= 8 ? rows : DINOS.slice(0, 12);
+const FISH_INFO = {
+  めだか: ["ちいさな からだ", "いけや みずろなどで みられる ちいさな さかなだよ。"],
+  きんぎょ: ["ひらひらした ひれ", "ひとが ながいあいだ そだててきた さかなだよ。"],
+  ふな: ["こいに にた からだ", "いけや かわで くらす みぢかな さかなだよ。"],
+  こい: ["くちの まわりの ひげ", "いけや かわで くらし、くちの ひげが めじるしだよ。"],
+  どじょう: ["ほそながい からだ", "かわぞこや どろの ちかくで くらすことが おおいよ。"],
+  なまず: ["おおきな くちと ひげ", "かわや いけに くらす なかまだよ。"],
+  あゆ: ["すっきりした からだ", "かわで くらし、いわに ついた こけなどを たべるよ。"],
+  やまめ: ["からだの もよう", "つめたい かわに くらす なかまだよ。"],
+  いわな: ["やまの かわに くらす", "つめたい やまの かわに くらす なかまだよ。"],
+  にじます: ["からだの てんてん", "からだの てんてんもようが めじるしだよ。"],
+  うなぎ: ["とても ながい からだ", "かわと うみの りょうほうに かかわって くらすよ。"],
+  さけ: ["つよい しっぽ", "うみで そだち、たまごを うむため かわへ もどる なかまがいるよ。"],
+  あじ: ["ぎんいろの からだ", "うみで むれになって およぐことが おおいよ。"],
+  さば: ["せなかの しまもよう", "うみを すばやく およぐ さかなだよ。"],
+  いわし: ["ちいさな ぎんいろの からだ", "うみで おおきな むれに なることが あるよ。"],
+  まだい: ["あかっぽい からだ", "うみで くらす あかっぽい さかなだよ。"],
+  ひらめ: ["ひらたい からだ", "うみの そこに ちかい ところで くらす ひらたい さかなだよ。"],
+  はりせんぼん: ["とげの ある からだ", "からだを ふくらませる なかまがいるよ。"],
+  うつぼ: ["ながく くねった からだ", "いわの すきまなどに かくれることが あるよ。"],
+  まぐろ: ["はやく およぎやすい からだ", "ひろい うみを はやく およぐ さかなだよ。"],
+  とびうお: ["つばさのような おおきな ひれ", "おおきな ひれを ひろげて みずの うえを すすむよ。"],
+  まんぼう: ["まるく ひらたい からだ", "おおきく ひらたい からだが とくちょうだよ。"],
+  しゅもくざめ: ["かなづちのような あたま", "よこに ひろがった あたまが とくちょうの さめだよ。"],
+  ちょうちんあんこう: ["あたまの えさを さそう ぶぶん", "ふかい うみに すむ なかまがいるよ。"],
+  りゅうぐうのつかい: ["とても ながい からだ", "ふかい うみに すむ、とても ながい さかなだよ。"],
+  らぶか: ["ながい からだの さめ", "ふかい うみに すむ さめの なかまだよ。"],
+  みつくりざめ: ["まえに のびた くちもと", "ふかい うみに すむ さめの なかまだよ。"],
+  じんべえざめ: ["とても おおきな からだ", "げんざい しられている さかなの なかで もっとも おおきな なかまだよ。"],
+  ほほじろざめ: ["おおきな はと からだ", "うみで くらす おおきな さめの なかまだよ。"],
+  おにいとまきえい: ["つばさのような おおきな ひれ", "おおきな ひれを はばたくように うごかして およぐよ。"],
+  しーらかんす: ["ふとい ひれ", "ふかい うみに すむ なかまで、ふとい ひれが とくちょうだよ。"],
 };
+const fishInfoRows = () => FISH.filter((f) => FISH_INFO[f.name]);
+const fishHome = (f) => ["water_0", "water_1"].includes(f.area) ? "かわ・いけ" : "うみ";
+const fishAreaName = (f) => ["はじまりのいけ", "おおきなかわ", "かいがん", "さんごしょう", "おきのうみ", "しんかい", "でんせつのうみ"][+f.area.slice(6)];
+
 const dinoFeature = {
-  horn: "かおに つのがある", plates: "せなかに おおきな いたがある", long: "くびが ながい",
-  armor: "からだが よろいのよう", crest: "あたまに とくちょうがある", rex: "おおきな あたまと 2ほんあし",
-  sail: "せなかに おおきな とっきがある", raptor: "2ほんあしで すばやく うごく",
+  horn: "かおに つのがある",
+  plates: "せなかに おおきな いたがある",
+  long: "くびと しっぽが ながい",
+  armor: "からだが よろいのよう",
+  crest: "あたまの かたちに とくちょうがある",
+  rex: "おおきな あたまと 2ほんあし",
+  sail: "せなかに おおきな とっきがある",
+  raptor: "2ほんあしで うごく からだ",
 };
-const dinoLegs = (d) => ["rex", "sail", "raptor"].includes(d.shape) ? "2ほんあし" : "4ほんあし";
+const sizeBand = (length) => length < 5 ? "5mより ちいさい" : length <= 12 ? "5〜12mくらい" : "12mより おおきい";
 
 const ANIMAL_INFO = {
-  らいおん: ["🦁", "そうげん", "にく", "はしる", "おおきな ねこの なかまだよ。"],
-  とら: ["🐯", "もり", "にく", "はしる", "しまもようが あるよ。"],
-  ぞう: ["🐘", "そうげん", "くさや は", "はしる", "ながい はなで ものを つかめるよ。"],
-  きりん: ["🦒", "そうげん", "は", "はしる", "ながい くびで たかい はも たべるよ。"],
-  ぱんだ: ["🐼", "もり", "たけ", "はしる", "しろと くろの からだだよ。"],
+  らいおん: ["🦁", "そうげん", "にく", "はしる", "おすには たてがみが ある なかまがいるよ。"],
+  とら: ["🐯", "もり", "にく", "はしる", "しまもようが ある おおきな ねこの なかまだよ。"],
+  ぞう: ["🐘", "そうげん", "くさや は", "あるく", "ながい はなで ものを つかめるよ。"],
+  かば: ["🦛", "みずべ", "くさ", "はしる", "みずべで くらし、おおきな くちが とくちょうだよ。"],
+  さい: ["🦏", "そうげん", "くさや は", "はしる", "はなの うえの つのが めじるしだよ。"],
+  ごりら: ["🦍", "もり", "はや くだもの", "あるく", "おおきな からだの さるの なかまだよ。"],
+  きりん: ["🦒", "そうげん", "は", "はしる", "ながい くびで たかい ところの はも たべるよ。"],
+  しまうま: ["🦓", "そうげん", "くさ", "はしる", "しろと くろの しまもようが あるよ。"],
+  ぱんだ: ["🐼", "もり", "たけ", "あるく", "しろと くろの からだで、たけを よく たべるよ。"],
   こあら: ["🐨", "もり", "ゆーかりの は", "のぼる", "きの うえで すごすことが おおいよ。"],
-  おおかみ: ["🐺", "もり", "にく", "はしる", "いぬに ちかい なかまだよ。"],
-  きつね: ["🦊", "もり", "いろいろ", "はしる", "ふさふさの しっぽが あるよ。"],
-  うさぎ: ["🐰", "くさはら", "くさ", "はしる", "ながい みみが あるよ。"],
+  かんがるー: ["🦘", "くさはら", "くさや は", "じゃんぷ", "つよい うしろあしで じゃんぷするよ。"],
+  ひぐま: ["🐻", "もりや やま", "いろいろ", "あるく", "おおきな からだの くまの なかまだよ。"],
+  おおかみ: ["🐺", "もりや そうげん", "にく", "はしる", "いぬに ちかい なかまだよ。"],
+  きつね: ["🦊", "もりや そうげん", "いろいろ", "はしる", "ふさふさの しっぽが あるよ。"],
+  うさぎ: ["🐰", "くさはら", "くさ", "じゃんぷ", "ながい みみと つよい うしろあしが あるよ。"],
+  りす: ["🐿️", "もり", "きのみ", "のぼる", "きに のぼるのが とくいな なかまがいるよ。"],
+  しか: ["🦌", "もりや くさはら", "くさや は", "はしる", "おすに つのが ある なかまがいるよ。"],
+  らくだ: ["🐫", "さばく", "くさなど", "あるく", "せなかの こぶが とくちょうだよ。"],
+  あるぱか: ["🦙", "こうげん", "くさ", "あるく", "ふわふわした けに おおわれているよ。"],
+  わに: ["🐊", "みずべ", "にく", "およぐ", "おおきな くちと つよい しっぽが あるよ。"],
   かめ: ["🐢", "みずべ", "いろいろ", "およぐ", "こうらで からだを まもるよ。"],
-  かえる: ["🐸", "みずべ", "むしなど", "およぐ", "こどものころは おたまじゃくしだよ。"],
+  かえる: ["🐸", "みずべ", "むしなど", "じゃんぷ", "こどものころは おたまじゃくしだよ。"],
   ぺんぎん: ["🐧", "うみべ", "さかななど", "およぐ", "とりだけど そらは とばず、じょうずに およぐよ。"],
-  ふくろう: ["🦉", "もり", "ちいさな どうぶつ", "とぶ", "よるに かつどうする なかまが おおいよ。"],
+  ふくろう: ["🦉", "もり", "ちいさな どうぶつなど", "とぶ", "よるに かつどうする なかまが おおいよ。"],
   わし: ["🦅", "やまや もり", "にく", "とぶ", "おおきな つばさで そらを とぶよ。"],
   いるか: ["🐬", "うみ", "さかななど", "およぐ", "さかなではなく ほにゅうるいだよ。"],
   しゃち: ["🐋", "うみ", "さかななど", "およぐ", "いるかの なかまで、とても おおきいよ。"],
-  たこ: ["🐙", "うみ", "かいなど", "およぐ", "うでが 8ほん あるよ。"],
+  あざらし: ["🦭", "うみ", "さかななど", "およぐ", "ひれのような あしで じょうずに およぐよ。"],
+  らっこ: ["🦦", "うみ", "かいや うになど", "およぐ", "うみの うえで あおむけに うかぶことが あるよ。"],
+  たこ: ["🐙", "うみ", "かいや えびなど", "およぐ", "うでが 8ほん あるよ。"],
 };
 const animalRows = () => ANIMALS.filter((a) => ANIMAL_INFO[a.name]);
+const animalPool = (level) => rotatePool(animalRows(), level, 12, 5);
 
 function mathQuestion(level, index) {
   if (level === 1 || level === 2) {
@@ -261,76 +276,258 @@ function englishQuestion(level, index) {
   if (level <= 4) {
     const group = EN_GROUPS[level - 1];
     const upper = group[index % group.length];
-    return choice(`「${upper}」の こもじは？`, upper.toLowerCase(), shuffle([...group].filter((x) => x !== upper).map((x) => x.toLowerCase())).slice(0, 3), `${upper} と ${upper.toLowerCase()} は おなじ あるふぁべっと。`);
+    return choice(
+      `「${upper}」の こもじは？`,
+      upper.toLowerCase(),
+      shuffle([...group].filter((x) => x !== upper).map((x) => x.toLowerCase())).slice(0, 3),
+      `${upper} と ${upper.toLowerCase()} は おなじ あるふぁべっと。`,
+      { speak: upper, speakLang: "en-US" },
+    );
   }
   if (level === 5) {
     const upper = String.fromCharCode(65 + (index * 5) % 26);
-    return choice(`「${upper.toLowerCase()}」と おなじ あるふぁべっとは？`, upper, [1, 4, 9].map((v) => String.fromCharCode(65 + ((upper.charCodeAt(0) - 65 + v) % 26))), `${upper.toLowerCase()} と ${upper} は おなじだよ。`);
+    return choice(
+      `「${upper.toLowerCase()}」と おなじ あるふぁべっとは？`,
+      upper,
+      [1, 4, 9].map((v) => String.fromCharCode(65 + ((upper.charCodeAt(0) - 65 + v) % 26))),
+      `${upper.toLowerCase()} と ${upper} は おなじだよ。`,
+      { speak: upper, speakLang: "en-US" },
+    );
   }
   const bank = level === 6 ? EN_COLORS_NUMBERS : level === 7 ? EN_WORDS : EN_PHRASES;
   const row = bank[index % bank.length];
-  return choice(`「${row[0]}」を えいごで？`, row[1], shuffle(bank.filter((x) => x !== row).map((x) => x[1])).slice(0, 3), `${row[0]} = ${row[1]}`);
+  return choice(
+    `「${row[0]}」を えいごで？`,
+    row[1],
+    shuffle(bank.filter((x) => x !== row).map((x) => x[1])).slice(0, 3),
+    `${row[0]} = ${row[1]}`,
+    { speak: row[1], speakLang: "en-US" },
+  );
 }
 
 function fishQuestion(level, index) {
-  const bank = familiarFish();
-  const f = bank[index % bank.length];
-  if (level <= 2) {
-    return choice(level === 1 ? "この さかなの なまえは？" : "この さかなと おなじ なまえは？", f.name, shuffle(bank.filter((x) => x.id !== f.id).map((x) => x.name)).slice(0, 3), fishFact[f.name] || f.fact, { visual: "creature", creature: f.id });
+  if (level === 1) {
+    const bank = fishPool(level);
+    const f = pick(bank);
+    return choice(
+      "この さかなの なまえは？",
+      f.name,
+      shuffle(bank.filter((x) => x.id !== f.id).map((x) => x.name)).slice(0, 3),
+      `${f.name}だよ。`,
+      { visual: "creature", creature: f.id },
+    );
   }
-  if (level === 3) {
-    const habitat = ["water_0", "water_1"].includes(f.area) ? "かわ・いけ" : "うみ";
-    return choice(`${f.name}が くらす ばしょは？`, habitat, habitat === "うみ" ? ["かわ・いけ", "やま", "そら"] : ["うみ", "やま", "そら"], `${f.name}は ${habitat}の なかまだよ。`, { visual: "creature", creature: f.id });
+  if (level === 2) {
+    const bank = fishPool(level);
+    const f = pick(bank);
+    const home = fishHome(f);
+    return choice(
+      `${f.name}は どちらの なかま？`,
+      home,
+      home === "うみ" ? ["かわ・いけ", "やま", "そら"] : ["うみ", "やま", "そら"],
+      `${f.name}は ${home}で くらす なかまだよ。`,
+      { visual: "creature", creature: f.id },
+    );
   }
-  if (level === 4) {
-    const rows = bank.filter((x) => fishFeature[x.name]);
-    const x = rows[index % rows.length];
-    return choice(`${x.name}の みための とくちょうは？`, fishFeature[x.name], shuffle(Object.values(fishFeature).filter((v) => v !== fishFeature[x.name])).slice(0, 3), fishFact[x.name] || x.fact, { visual: "creature", creature: x.id });
+  if (level === 3 || level === 4) {
+    const rows = fishInfoRows();
+    const offsetRows = rotatePool(rows, level, Math.min(18, rows.length), 11);
+    const f = pick(offsetRows);
+    const info = FISH_INFO[f.name];
+    if (level === 3)
+      return choice(
+        `${f.name}の みための とくちょうは？`,
+        info[0],
+        shuffle(rows.filter((x) => x.id !== f.id).map((x) => FISH_INFO[x.name][0])).slice(0, 3),
+        info[1],
+        { visual: "creature", creature: f.id },
+      );
+    return choice(
+      `${f.name}について ただしいのは？`,
+      info[1],
+      shuffle(rows.filter((x) => x.id !== f.id).map((x) => FISH_INFO[x.name][1])).slice(0, 3),
+      info[1],
+      { visual: "creature", creature: f.id },
+    );
   }
-  const rows = bank.filter((x) => fishFact[x.name]);
-  const x = rows[index % rows.length];
   if (level === 5) {
-    return choice(`${x.name}について ただしいのは？`, fishFact[x.name], shuffle(rows.filter((y) => y.id !== x.id).map((y) => fishFact[y.name])).slice(0, 3), fishFact[x.name], { visual: "creature", creature: x.id });
+    const f = pick(fishPool(level));
+    const areaName = fishAreaName(f);
+    return choice(
+      `${f.name}は このゲームの どの つりばで みつかる？`,
+      areaName,
+      shuffle(["はじまりのいけ", "おおきなかわ", "かいがん", "さんごしょう", "おきのうみ", "しんかい", "でんせつのうみ"].filter((v) => v !== areaName)).slice(0, 3),
+      `${f.name}は「${areaName}」で みつかるよ。`,
+      { visual: "creature", creature: f.id },
+    );
   }
-  const areaName = ["いけ", "かわ", "かいがん", "さんごしょう", "おきのうみ", "しんかい", "でんせつのうみ"][+x.area.slice(6)];
-  return choice(`${x.name}の ずかんを みよう。げーむの つりばは？`, areaName, shuffle(["いけ", "かわ", "かいがん", "さんごしょう", "おきのうみ", "しんかい"].filter((v) => v !== areaName)).slice(0, 3), `${x.name}は ${areaName}で みつかるよ。`, { visual: "creature", creature: x.id });
+  const f = pick(FISH);
+  const kind = index % 3;
+  if (kind === 0)
+    return choice(
+      "この さかなの なまえを おさらい！",
+      f.name,
+      shuffle(FISH.filter((x) => x.id !== f.id).map((x) => x.name)).slice(0, 3),
+      `${f.name}だよ。`,
+      { visual: "creature", creature: f.id },
+    );
+  if (kind === 1) {
+    const home = fishHome(f);
+    return choice(
+      `${f.name}の くらす ばしょを おさらい！`,
+      home,
+      home === "うみ" ? ["かわ・いけ", "やま", "そら"] : ["うみ", "やま", "そら"],
+      `${f.name}は ${home}の なかまだよ。`,
+      { visual: "creature", creature: f.id },
+    );
+  }
+  const areaName = fishAreaName(f);
+  return choice(
+    `${f.name}の つりばを おさらい！`,
+    areaName,
+    shuffle(["はじまりのいけ", "おおきなかわ", "かいがん", "さんごしょう", "おきのうみ", "しんかい", "でんせつのうみ"].filter((v) => v !== areaName)).slice(0, 3),
+    `このゲームでは「${areaName}」で みつかるよ。`,
+    { visual: "creature", creature: f.id },
+  );
 }
 
 function dinosaurQuestion(level, index) {
-  const bank = familiarDinos();
-  const d = bank[index % bank.length];
-  if (level <= 2) {
-    return choice(level === 1 ? "この きょうりゅうの なまえは？" : "この きょうりゅうと おなじ なまえは？", d.name, shuffle(bank.filter((x) => x.id !== d.id).map((x) => x.name)).slice(0, 3), d.fact, { visual: "creature", creature: d.id });
-  }
-  if (level === 3) {
+  const bank = level === 6 ? DINOS : dinoPool(level);
+  const d = pick(bank);
+  if (level === 1)
+    return choice(
+      "この きょうりゅうの なまえは？",
+      d.name,
+      shuffle(bank.filter((x) => x.id !== d.id).map((x) => x.name)).slice(0, 3),
+      `${d.name}だよ。`,
+      { visual: "creature", creature: d.id },
+    );
+  if (level === 2) {
     const food = d.food.includes("しょくぶつ") ? "しょくぶつ" : d.food.includes("さかな") ? "さかななど" : d.food === "にく" ? "にく" : "いろいろ";
-    return choice(`${d.name}は なにを たべた？`, food, ["しょくぶつ", "にく", "さかななど", "いろいろ"].filter((x) => x !== food), `${d.name}は ${d.food}を たべたと かんがえられているよ。`, { visual: "creature", creature: d.id });
+    return choice(
+      `${d.name}は なにを たべた？`,
+      food,
+      ["しょくぶつ", "にく", "さかななど", "いろいろ"].filter((x) => x !== food),
+      `${d.name}は ${d.food}を たべたと かんがえられているよ。`,
+      { visual: "creature", creature: d.id },
+    );
   }
+  if (level === 3)
+    return choice(
+      `${d.name}が いた じだいは？`,
+      d.era,
+      ["じゅらき", "はくあき", "いま"].filter((x) => x !== d.era),
+      `${d.name}は ${d.era}の きょうりゅうだよ。`,
+      { visual: "creature", creature: d.id },
+    );
   if (level === 4) {
-    const feature = dinoFeature[d.shape] || "からだに とくちょうがある";
-    return choice(`${d.name}の とくちょうは？`, feature, shuffle(Object.values(dinoFeature).filter((x) => x !== feature)).slice(0, 3), feature + "よ。", { visual: "creature", creature: d.id });
+    const feature = dinoFeature[d.shape] || "からだの かたちに とくちょうがある";
+    return choice(
+      `${d.name}の とくちょうは？`,
+      feature,
+      shuffle(Object.values(dinoFeature).filter((x) => x !== feature)).slice(0, 3),
+      `${feature}よ。`,
+      { visual: "creature", creature: d.id },
+    );
   }
   if (level === 5) {
-    const legs = dinoLegs(d);
-    return choice(`${d.name}は どちらの たいぷ？`, legs, [legs === "2ほんあし" ? "4ほんあし" : "2ほんあし", "つばさで とぶ", "あしが ない"], `${d.name}は ${legs}の たいぷだよ。`, { visual: "creature", creature: d.id });
+    const band = sizeBand(d.length);
+    return choice(
+      `${d.name}の たいちょうの めやすは？`,
+      band,
+      ["5mより ちいさい", "5〜12mくらい", "12mより おおきい"].filter((x) => x !== band),
+      `このゲームの ずかんでは やく${d.length}mとしているよ。`,
+      { visual: "creature", creature: d.id },
+    );
   }
-  return choice(`${d.name}が いた じだいは？`, d.era, ["じゅらき", "はくあき", "いま"].filter((x) => x !== d.era), `${d.name}は ${d.era}の きょうりゅうだよ。`, { visual: "creature", creature: d.id });
+  const asksEra = index % 2 === 0;
+  if (asksEra)
+    return choice(
+      `${d.name}の じだいを おさらい！`,
+      d.era,
+      ["じゅらき", "はくあき", "いま"].filter((x) => x !== d.era),
+      `${d.name}は ${d.era}の きょうりゅうだよ。`,
+      { visual: "creature", creature: d.id },
+    );
+  const food = d.food.includes("しょくぶつ") ? "しょくぶつ" : d.food.includes("さかな") ? "さかななど" : d.food === "にく" ? "にく" : "いろいろ";
+  return choice(
+    `${d.name}の たべものを おさらい！`,
+    food,
+    ["しょくぶつ", "にく", "さかななど", "いろいろ"].filter((x) => x !== food),
+    `${d.name}は ${d.food}を たべたと かんがえられているよ。`,
+    { visual: "creature", creature: d.id },
+  );
 }
 
 function animalQuestion(level, index) {
-  const rows = animalRows();
-  const a = rows[index % rows.length];
+  const rows = animalPool(level);
+  const a = pick(rows);
   const info = ANIMAL_INFO[a.name];
-  if (level <= 2) {
-    return choice(level === 1 ? "この いきものの なまえは？" : "この いきものと おなじ なまえは？", a.name, shuffle(rows.filter((x) => x.id !== a.id).map((x) => x.name)).slice(0, 3), info[4], { visual: "emoji", emoji: info[0] });
-  }
+  const extra = { visual: "emoji", emoji: info[0], creature: a.id };
+  if (level === 1)
+    return choice(
+      "この いきものの なまえは？",
+      a.name,
+      shuffle(rows.filter((x) => x.id !== a.id).map((x) => x.name)).slice(0, 3),
+      info[4],
+      extra,
+    );
+  if (level === 2)
+    return choice(
+      `${a.name}が よく くらす ばしょは？`,
+      info[1],
+      shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][1]).filter((x) => x !== info[1])).slice(0, 3),
+      `${a.name}は ${info[1]}で くらす なかまがいるよ。`,
+      extra,
+    );
   if (level === 3)
-    return choice(`${a.name}が くらす ばしょは？`, info[1], shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][1]).filter((x) => x !== info[1])).slice(0, 3), `${a.name}は ${info[1]}で くらす なかまだよ。`, { visual: "emoji", emoji: info[0] });
+    return choice(
+      `${a.name}が よく たべるものは？`,
+      info[2],
+      shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][2]).filter((x) => x !== info[2])).slice(0, 3),
+      `${a.name}は ${info[2]}などを たべるよ。`,
+      extra,
+    );
   if (level === 4)
-    return choice(`${a.name}が よく たべるものは？`, info[2], shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][2]).filter((x) => x !== info[2])).slice(0, 3), `${a.name}は ${info[2]}を たべるよ。`, { visual: "emoji", emoji: info[0] });
+    return choice(
+      `${a.name}の うごきで とくいなのは？`,
+      info[3],
+      shuffle(["はしる", "あるく", "のぼる", "およぐ", "とぶ", "じゃんぷ"].filter((x) => x !== info[3])).slice(0, 3),
+      `${a.name}は ${info[3]}のが とくいだよ。`,
+      extra,
+    );
   if (level === 5)
-    return choice(`${a.name}の うごきは？`, info[3], ["とぶ", "およぐ", "はしる", "のぼる"].filter((x) => x !== info[3]), `${a.name}は ${info[3]}のが とくいだよ。`, { visual: "emoji", emoji: info[0] });
-  return choice(`${a.name}について ただしいのは？`, info[4], shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][4])).slice(0, 3), info[4], { visual: "emoji", emoji: info[0] });
+    return choice(
+      `${a.name}について ただしいのは？`,
+      info[4],
+      shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][4])).slice(0, 3),
+      info[4],
+      extra,
+    );
+  const kind = index % 3;
+  if (kind === 0)
+    return choice(
+      "この いきものの なまえを おさらい！",
+      a.name,
+      shuffle(rows.filter((x) => x.id !== a.id).map((x) => x.name)).slice(0, 3),
+      info[4],
+      extra,
+    );
+  if (kind === 1)
+    return choice(
+      `${a.name}の くらす ばしょを おさらい！`,
+      info[1],
+      shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][1]).filter((x) => x !== info[1])).slice(0, 3),
+      `${a.name}は ${info[1]}で くらす なかまがいるよ。`,
+      extra,
+    );
+  return choice(
+    `${a.name}の とくちょうを おさらい！`,
+    info[4],
+    shuffle(rows.filter((x) => x.id !== a.id).map((x) => ANIMAL_INFO[x.name][4])).slice(0, 3),
+    info[4],
+    extra,
+  );
 }
 
 export function question(subject, level, index = 0) {
@@ -392,7 +589,7 @@ export function generateSession(subject, level) {
   }
   recentQuestions.set(
     key,
-    [...recent, ...result.map(questionId)].slice(-10),
+    [...recent, ...result.map(questionId)].slice(-20),
   );
   return result;
 }
