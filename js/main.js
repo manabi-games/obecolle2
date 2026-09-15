@@ -12,6 +12,7 @@ import {
   deriveInteractionState,
   shouldRestoreIsland,
 } from "./systems/ui-state.js";
+import { resetTransientState } from "./systems/session-state.js";
 import { EYE_NAMES, eyePreview } from "./ui-face.js";
 import { artLayout } from "./data/art-layout.js";
 const E = (x) =>
@@ -29,14 +30,9 @@ class Game {
     this.dialog = document.querySelector("#dialog-layer");
     this.saveManager = new SaveManager();
     this.audio = new AudioManager();
-    this.activity = null;
-    this.modalOpen = false;
-    this.noticeQueue = [];
-    this.scene = "title";
-    this.page = 0;
-    this.category = "friends";
     this.walkKeys = new Set();
-    this.walkPath = [];
+    this.resetSessionState();
+    this.scene = "title";
     this.world = new World(document.querySelector("#world"), (a) =>
       this.selectWorld(a),
     );
@@ -84,6 +80,10 @@ class Game {
     if (errors.length) throw Error(errors.join("\n"));
     await this.saveManager.init();
     this.title();
+  }
+  resetSessionState() {
+    resetTransientState(this);
+    if (this.dialog) this.dialog.innerHTML = "";
   }
   panel(html, cls = "") {
     this.walkKeys.clear();
@@ -161,11 +161,12 @@ class Game {
     this.toast(e.message || String(e));
   }
   title() {
+    this.resetSessionState();
     this.s = null;
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.3.1 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.3.2 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -185,6 +186,7 @@ class Game {
   async load(slot) {
     const loaded = await this.saveManager.load(slot);
     if (!loaded) throw Error("せーぶがありません");
+    this.resetSessionState();
     this.s = loaded.data;
     this.s.meta.playCount++;
     this.audio.music = this.s.settings.music;
@@ -198,6 +200,7 @@ class Game {
       );
   }
   create(slot, editing = false) {
+    if (!editing) this.resetSessionState();
     this.editing = editing;
     this.draft = editing ? R.clone(this.s.player) : R.newSave(slot).player;
     this.newSlot = slot;
@@ -343,7 +346,10 @@ class Game {
       await this.commit();
       return this.room();
     }
-    this.s = R.newSave(this.newSlot, name, this.draft.appearance);
+    const slot = this.newSlot,
+      appearance = this.draft.appearance;
+    this.resetSessionState();
+    this.s = R.newSave(slot, name, appearance);
     this.s.inventory.clothing[this.draft.appearance.outfit] = 1;
     await this.commit();
     this.setScene("opening");
@@ -365,6 +371,7 @@ class Game {
     );
   }
   island() {
+    this.companion = null;
     this.setScene("island");
     this.screen.innerHTML = `<div class="next-goal"><strong>つぎの おたのしみ</strong>${E(this.nextGoal())}</div><div class="scene-bar walk-bar"><span>↑ ↓ ← → ／ W A S D で あるこう<br><small>たてものを おすと、そこまで あるくよ</small></span><button class="primary" id="walk-enter" data-a="walkenter" disabled>いりぐちへ あるこう</button><button data-a="overview">${this.walkOverview ? "じぶんを みる" : "しまを みわたす"}</button><button data-a="fullscreen">⛶</button></div>`;
     this.syncInteractionState();
@@ -589,9 +596,8 @@ class Game {
   }
   together(id) {
     this.closeDialog();
-    this.companion = id;
     this.panel(
-      `<h2>${D.FRIENDS.find((f) => f.id === id).name}と あそぼう</h2><div class="row"><button data-a="friendquiz:${id}">いっしょに くいず</button>${this.s.progression.manabiRank >= 4 ? '<button data-a="fishing">いっしょに つり</button>' : ""}${this.s.progression.manabiRank >= 6 ? '<button data-a="excavation">いっしょに はっくつ</button>' : ""}<button data-a="resident:${id}">もどる</button></div>`,
+      `<h2>${D.FRIENDS.find((f) => f.id === id).name}と あそぼう</h2><div class="row"><button data-a="friendquiz:${id}">いっしょに くいず</button>${this.s.progression.manabiRank >= 4 ? `<button data-a="togetherfishing:${id}">いっしょに つり</button>` : ""}${this.s.progression.manabiRank >= 6 ? `<button data-a="togetherdig:${id}">いっしょに はっくつ</button>` : ""}<button data-a="resident:${id}">もどる</button></div>`,
       "small",
     );
   }
@@ -609,13 +615,14 @@ class Game {
   companionReward(activity) {
     if (!this.companion) return;
     const id = this.companion;
+    this.companion = null;
+    if (!this.s.friends[id]) return;
     this.s.friends[id].affinity = Math.min(
       100,
       this.s.friends[id].affinity + 4,
     );
     R.friendMilestone(this.s, id);
     R.remember(this.s, "together", "いっしょに" + activity, id, [id]);
-    this.companion = null;
   }
   async friendQuiz(id) {
     this.startQuiz(
@@ -662,10 +669,13 @@ class Game {
       "small",
     );
   }
-  fishing() {
+  fishing(companionId = null) {
     this.setScene("fishing");
+    const trip = this.s.fishing.trip,
+      companion = companionId && this.s.friends[companionId] ? companionId : null,
+      currentArea = trip && D.FISH_AREAS.find((a) => a.id === trip.area);
     this.panel(
-      `<h2>つりみなと</h2><p>ちけっと1まいで3きゃすと。おおものを つりあげよう！</p>${this.s.fishing.trip ? `<button class="primary" data-a="fishstart:${this.s.fishing.trip.area}">のこり${this.s.fishing.trip.remaining}かいのつりをつづける</button>` : ""}<div class="grid three">${D.FISH_AREAS.map((a) => `<button data-a="fishstart:${a.id}" ${this.s.fishing.unlockedAreas.includes(a.id) ? "" : "disabled"}>${a.name}<small style="display:block">Rank${a.rank}${a.species ? "・さかな" + a.species + "しゅるい" : ""}</small></button>`).join("")}</div><p>つりざお <select id="rod">${D.RODS.filter(
+      `<h2>つりみなと</h2><p>ちけっと1まいで3きゃすと。おおものを つりあげよう！</p>${trip ? `<p>いまは ${currentArea.name}の つづきだよ。3きゃすと おわってから べつのつりばへいけるよ。</p><button class="primary" data-a="fishstart:${trip.area}${companion ? `:${companion}` : ""}">${currentArea.name}で のこり${trip.remaining}かいをつづける</button>` : ""}<div class="grid three">${D.FISH_AREAS.map((a) => `<button data-a="fishstart:${a.id}${companion ? `:${companion}` : ""}" ${this.s.fishing.unlockedAreas.includes(a.id) && !trip ? "" : "disabled"}>${a.name}<small style="display:block">${trip ? "いまの3かいを おわらせよう" : `Rank${a.rank}${a.species ? "・さかな" + a.species + "しゅるい" : ""}`}</small></button>`).join("")}</div><p>つりざお <select id="rod">${D.RODS.filter(
         (r) => this.s.fishing.ownedRods.includes(r.id),
       )
         .map(
@@ -677,10 +687,13 @@ class Game {
         )}</select></p><div class="row"><button data-a="island">しまへ</button><button data-a="book:fish">さかなずかん</button><button data-a="display">すいそう</button></div>`,
     );
   }
-  excavation() {
+  excavation(companionId = null) {
     this.setScene("excavation");
+    const trip = this.s.dinosaurs.trip,
+      companion = companionId && this.s.friends[companionId] ? companionId : null,
+      currentArea = trip && D.DIG_AREAS.find((a) => a.id === trip.area);
     this.panel(
-      `<h2>はっくつしま</h2><p>ちけっと1まいで 3かい はっくつ。きらきらを えらんで、かせきから きょうりゅうを みつけよう！</p>${this.s.dinosaurs.trip ? `<button class="primary" data-a="digstart:${this.s.dinosaurs.trip.area}">のこり${this.s.dinosaurs.trip.remaining}かいの はっくつを つづける</button>` : ""}<div class="grid three">${D.DIG_AREAS.map((a) => `<button data-a="digstart:${a.id}" ${this.s.dinosaurs.unlockedAreas.includes(a.id) ? "" : "disabled"}>${a.name}<small style="display:block">Rank${a.rank}${a.completed ? "・ふくげん" + a.completed + "しゅるい" : ""}</small></button>`).join("")}</div><p class="muted">1かいの はっくつは 20〜30びょう。はんまー3かい → ぶらしで みつけよう。</p><p><button data-a="island">しまへ</button> <button data-a="book:dinosaurs">きょうりゅうずかん</button></p>`,
+      `<h2>はっくつしま</h2><p>ちけっと1まいで 3かい はっくつ。きらきらを えらんで、かせきから きょうりゅうを みつけよう！</p>${trip ? `<p>いまは ${currentArea.name}の つづきだよ。3かい おわってから べつのえりあへいけるよ。</p><button class="primary" data-a="digstart:${trip.area}${companion ? `:${companion}` : ""}">${currentArea.name}で のこり${trip.remaining}かいをつづける</button>` : ""}<div class="grid three">${D.DIG_AREAS.map((a) => `<button data-a="digstart:${a.id}${companion ? `:${companion}` : ""}" ${this.s.dinosaurs.unlockedAreas.includes(a.id) && !trip ? "" : "disabled"}>${a.name}<small style="display:block">${trip ? "いまの3かいを おわらせよう" : `Rank${a.rank}${a.completed ? "・ふくげん" + a.completed + "しゅるい" : ""}`}</small></button>`).join("")}</div><p class="muted">1かいの はっくつは 20〜30びょう。はんまー3かい → ぶらしで みつけよう。</p><p><button data-a="island">しまへ</button> <button data-a="book:dinosaurs">きょうりゅうずかん</button></p>`,
     );
   }
   ownedCreatures() {
@@ -694,13 +707,16 @@ class Game {
   }
   arena() {
     this.setScene("arena");
+    const active = this.s.arena.active,
+      activeCup = active && D.TOURNAMENTS.find((c) => c.id === active.cup);
     this.panel(
-      `<h2>さいきょうありーな</h2><p>がくしゅう・ちしき・たいぴんぐでかつやく！ さんかはむりょう。</p>${this.s.arena.active ? `<p><button class="primary" data-a="arenacontinue">${D.TOURNAMENTS.find((c) => c.id === this.s.arena.active.cup).name} ${this.s.arena.active.wins + 1}しあいめをつづける</button></p>` : ""}<div class="grid three">${D.TOURNAMENTS.map((c) => `<button data-a="cup:${c.id}" ${this.s.arena.unlockedTournaments.includes(c.id) ? "" : "disabled"}>${c.name}<small style="display:block">${this.s.arena.clearedTournaments.includes(c.id) ? "🏆 ゆうしょうずみ" : "Rank " + c.rank}${c.id === "cup_2" ? "・きょうりゅう10しゅるい" : ""}</small></button>`).join("")}</div><p><button data-a="island">しまへ</button></p>`,
+      `<h2>さいきょうありーな</h2><p>がくしゅう・ちしき・たいぴんぐでかつやく！ さんかはむりょう。</p>${active ? `<p>いまのたいかいを おわらせてから、つぎのたいかいをえらべるよ。</p><p><button class="primary" data-a="arenacontinue">${activeCup.name} ${active.wins + 1}しあいめをつづける</button></p>` : ""}<div class="grid three">${D.TOURNAMENTS.map((c) => `<button data-a="cup:${c.id}" ${this.s.arena.unlockedTournaments.includes(c.id) && !active ? "" : "disabled"}>${c.name}<small style="display:block">${active ? "いまのたいかいを つづけよう" : this.s.arena.clearedTournaments.includes(c.id) ? "🏆 ゆうしょうずみ" : "Rank " + c.rank}${c.id === "cup_2" && !active ? "・きょうりゅう10しゅるい" : ""}</small></button>`).join("")}</div><p><button data-a="island">しまへ</button></p>`,
     );
   }
   chooseCreature(cup) {
+    R.assertArenaStartAllowed(this.s, cup);
     this.panel(
-      `<h2>${D.TOURNAMENTS.find((c) => c.id === cup).name}に えんとりー</h2><p>いきものをえらぼう。いきものの つよさは かわらないよ。</p><select id="arena-creature">${this.ownedCreatures()
+      `<h2>${D.TOURNAMENTS.find((c) => c.id === cup).name}に えんとりー</h2><p>いきものによって とくいが ちがうよ。がくしゅう・ちしき・たいぴんぐも だいじ！</p><select id="arena-creature">${this.ownedCreatures()
         .map((c) => `<option value="${c.id}">${c.name}</option>`)
         .join(
           "",
@@ -1093,9 +1109,9 @@ class Game {
   async importConfirm() {
     const p = this.pendingImport;
     if (!p) return;
-    this.s = await this.saveManager.import(p.text, p.slot);
-    this.pendingImport = null;
-    this.closeDialog();
+    const imported = await this.saveManager.import(p.text, p.slot);
+    this.resetSessionState();
+    this.s = imported;
     this.island();
     this.toast("ばっくあっぷからふくげんしました");
   }
@@ -1396,6 +1412,12 @@ class Game {
       case "together":
         this.together(b);
         break;
+      case "togetherfishing":
+        this.fishing(b);
+        break;
+      case "togetherdig":
+        this.excavation(b);
+        break;
       case "friendquiz":
         await this.friendQuiz(b);
         break;
@@ -1433,7 +1455,7 @@ class Game {
         this.fishing();
         break;
       case "fishstart":
-        await this.beginFishing(b);
+        await this.beginFishing(b, c);
         break;
       case "fishaction":
         this.fishAction();
@@ -1445,7 +1467,7 @@ class Game {
         this.excavation();
         break;
       case "digstart":
-        await this.beginDig(b);
+        await this.beginDig(b, c);
         break;
       case "nextdig":
         this.digSite();

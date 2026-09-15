@@ -80,7 +80,9 @@ for (const scene of ["opening", "school", "quiz", "typing", "fishing"])
     `${scene} must not expose world labels`,
   );
 
-const main = fs.readFileSync(new URL("../js/main.js", import.meta.url), "utf8");
+const main = fs
+  .readFileSync(new URL("../js/main.js", import.meta.url), "utf8")
+  .replace(/\r\n/g, "\n");
 const world = fs.readFileSync(
   new URL("../js/three/world.js", import.meta.url),
   "utf8",
@@ -100,4 +102,4 @@ assert.ok(world.includes("Math.max(118, Math.min(innerHeight - 118, screenY))"))
 assert.ok(css.includes("/* v1.3.1 interaction and HUD stabilization */"));
 assert.ok(css.includes("@media (max-width: 1450px)"));
 
-console.log("PASS: Obecolle2 v1.3.1 interaction-state regression verifier");
+console.log("PASS: Obecolle2 v1.3.2 interaction-state regression verifier");

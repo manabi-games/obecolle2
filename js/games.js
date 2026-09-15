@@ -255,9 +255,10 @@ export const games = {
       "small",
     );
   },
-  async beginFishing(area) {
+  async beginFishing(area, companionId = null) {
     rules.startFishing(this.s, area);
     await this.commit();
+    this.companion = companionId && this.s.friends[companionId] ? companionId : null;
     this.scene = "fishing";
     this.world.set("fishing", this.s);
     this.addCompanion();
@@ -312,7 +313,7 @@ export const games = {
     if (this.activity?.kind !== "fish") return;
     this.activity = null;
     const result = rules.finishCast(this.s, success);
-    if (result) this.companionReward("つり");
+    this.companionReward("つり");
     await this.commit();
     if (result) {
       this.world.hero?.setState("victory");
@@ -323,9 +324,10 @@ export const games = {
       "small",
     );
   },
-  async beginDig(area) {
+  async beginDig(area, companionId = null) {
     rules.startDig(this.s, area);
     await this.commit();
+    this.companion = companionId && this.s.friends[companionId] ? companionId : null;
     this.scene = "excavation";
     this.world.set("excavation", this.s);
     this.addCompanion();
@@ -435,6 +437,7 @@ export const games = {
     }
   },
   async startArena(cup, creature) {
+    rules.assertArenaStartAllowed(this.s, cup);
     if (!this.s.arena.unlockedTournaments.includes(cup))
       throw Error("このたいかいはまだひらいていないよ");
     if (!this.ownedCreatures().some((c) => c.id === creature))

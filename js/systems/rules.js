@@ -401,7 +401,11 @@ export function weighted(rows, weight, rng = Math.random) {
   return rows.at(-1);
 }
 export function startFishing(s, area) {
-  if (s.fishing.trip) return s.fishing.trip;
+  if (s.fishing.trip) {
+    if (s.fishing.trip.area !== area)
+      throw Error("いまの3きゃすとを おわらせてから べつのつりばへいこう");
+    return s.fishing.trip;
+  }
   if (
     !s.fishing.unlockedAreas.includes(area) ||
     !s.progression.unlockedFacilities.includes("fishing")
@@ -460,7 +464,11 @@ export function finishCast(s, success, rng = Math.random) {
   return result;
 }
 export function startDig(s, area) {
-  if (s.dinosaurs.trip) return s.dinosaurs.trip;
+  if (s.dinosaurs.trip) {
+    if (s.dinosaurs.trip.area !== area)
+      throw Error("いまの3かいを おわらせてから べつのえりあへいこう");
+    return s.dinosaurs.trip;
+  }
   if (
     !s.dinosaurs.unlockedAreas.includes(area) ||
     !s.progression.unlockedFacilities.includes("excavation")
@@ -627,6 +635,12 @@ export function arenaScore(creature, learning, knowledge, typing) {
     knowledge * 0.2 +
     typing * 0.25
   );
+}
+export function assertArenaStartAllowed(s, cup) {
+  if (!s.arena.active) return;
+  if (s.arena.active.cup === cup)
+    throw Error("いまのたいかいを つづけよう");
+  throw Error("いまのたいかいを おわらせてから べつのたいかいへでよう");
 }
 export function arenaWin(s, creatureId) {
   const active = s.arena.active;
