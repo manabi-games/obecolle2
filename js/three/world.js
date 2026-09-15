@@ -123,6 +123,7 @@ export class World {
       add("ring", "#f8eed4", [0.3, 0.3, 0.3], [1, 0.7, -0.8]);
       this.add(g, f.x, 0, f.z);
       this.interact(g, f.id, f.name, 2.2);
+      this.labels.at(-1).hoverOnly = true;
       return;
     }
     if (f.id === "excavation") {
@@ -140,6 +141,7 @@ export class World {
         add("box", "#b88d5c", [1, 0.12, 0.6], [0, 0.02, 2 + i * 0.6]);
       this.add(g, f.x, 0, f.z);
       this.interact(g, f.id, f.name, 3.4);
+      this.labels.at(-1).hoverOnly = true;
       return;
     }
     if (f.id === "arena") {
@@ -159,6 +161,7 @@ export class World {
       add("ball", "#f4d277", [0.25, 0.25, 0.06], [0, 1.2, 2.59]);
       this.add(g, f.x, 0, f.z);
       this.interact(g, f.id, f.name, 3);
+      this.labels.at(-1).hoverOnly = true;
       return;
     }
     if (f.id === "shop") {
@@ -178,6 +181,7 @@ export class World {
       }
       this.add(g, f.x, 0, f.z);
       this.interact(g, f.id, f.name, 3.2);
+      this.labels.at(-1).hoverOnly = true;
       return;
     }
     add("box", "#f2e6ca", [w, h, 2.6], [0, h / 2, 0]);
@@ -236,6 +240,7 @@ export class World {
     }
     this.add(g, f.x, 0, f.z);
     this.interact(g, f.id, f.name, large ? 5.6 : 4.4);
+    this.labels.at(-1).hoverOnly = true;
   }
   set(name, s, params = {}) {
     if (this.scene) {
@@ -255,6 +260,13 @@ export class World {
     this.characters = [];
     this.ambient = [];
     this.creatures = [];
+    this.hero = null;
+    this.boat = null;
+    this.bobber = null;
+    this.fighter = null;
+    this.opponent = null;
+    this.typingCreature = null;
+    this.rescueFish = [];
     this.scene.add(new THREE.HemisphereLight("#fff6de", "#9ab7a4", 1.8));
     const sun = new THREE.DirectionalLight("#fff3d3", 2.1);
     sun.position.set(-8, 18, 10);
@@ -876,12 +888,28 @@ export class World {
     this.renderer.render(this.scene, this.camera);
     for (const l of this.labels) {
       const p = l.object.getWorldPosition(new THREE.Vector3());
+      const distanceToHero = this.hero
+        ? Math.hypot(
+            l.object.position.x - this.hero.position.x,
+            l.object.position.z - this.hero.position.z,
+          )
+        : Infinity;
+      const nearby =
+        l.object !== this.hero &&
+        (FACILITIES.some((f) => f.id === l.id)
+          ? distanceToHero < 5.2
+          : distanceToHero < 2.5);
+      const relevant = !l.hoverOnly || this.hovered === l.id || nearby;
       p.y += l.offset;
       p.project(this.camera);
-      l.element.style.left = (p.x * 0.5 + 0.5) * innerWidth + "px";
-      l.element.style.top = (-p.y * 0.5 + 0.5) * innerHeight + "px";
+      const screenX = (p.x * 0.5 + 0.5) * innerWidth;
+      const screenY = (-p.y * 0.5 + 0.5) * innerHeight;
+      l.element.style.left =
+        Math.max(95, Math.min(innerWidth - 95, screenX)) + "px";
+      l.element.style.top =
+        Math.max(118, Math.min(innerHeight - 118, screenY)) + "px";
       l.element.style.display =
-        !this.interactionsEnabled || p.z > 1 || (l.hoverOnly && this.hovered !== l.id)
+        !this.interactionsEnabled || p.z > 1 || !relevant
           ? "none"
           : "";
     }

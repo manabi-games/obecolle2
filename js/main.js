@@ -8,6 +8,10 @@ import { validateTyping } from "./systems/typing.js";
 import { doors, walkable, findPath, findPathToDoor } from "./systems/walking.js";
 import { FISH_ART, NEW_FISH_IDS } from "./data/art.js";
 import { LEARNING_STEPS } from "./systems/focused-learning.js";
+import {
+  deriveInteractionState,
+  shouldRestoreIsland,
+} from "./systems/ui-state.js";
 import { EYE_NAMES, eyePreview } from "./ui-face.js";
 import { artLayout } from "./data/art-layout.js";
 const E = (x) =>
@@ -83,9 +87,34 @@ class Game {
   }
   panel(html, cls = "") {
     this.walkKeys.clear();
-    this.world.setInteractionsEnabled(false);
     this.screen.innerHTML = `<section class="panel ${cls}">${html}</section>`;
-    document.querySelector("#labels").classList.add("hidden");
+    this.syncInteractionState();
+  }
+  interactionState() {
+    const sceneReady =
+      this.scene === "island"
+        ? !!this.screen.querySelector("#walk-enter")
+        : !!this.screen.querySelector(".scene-bar");
+    return deriveInteractionState({
+      scene: this.scene,
+      worldName: this.world.name,
+      modalOpen: this.modalOpen,
+      activityKind: this.activity?.kind || null,
+      panelOpen: !!this.screen.querySelector(".panel"),
+      sceneReady,
+    });
+  }
+  syncInteractionState() {
+    const state = this.interactionState();
+    this.world.setInteractionsEnabled(state.worldInteractions);
+    document
+      .querySelector("#labels")
+      .classList.toggle("hidden", !state.labelsVisible);
+    document.body.classList.toggle(
+      "island-interactive",
+      state.walkingEnabled,
+    );
+    return state;
   }
   setScene(name, params = {}) {
     this.walkKeys.clear();
@@ -98,11 +127,10 @@ class Game {
     this.world.paused = false;
     this.scene = name;
     this.world.set(name, this.s, params);
-    this.world.setInteractionsEnabled(true);
     this.audio.setScene(name);
     this.screen.innerHTML = "";
     this.hudUpdate();
-    document.querySelector("#labels").classList.remove("hidden");
+    this.syncInteractionState();
   }
   hudUpdate() {
     if (!this.s || this.scene === "title" || this.scene === "create") {
@@ -137,7 +165,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.3.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.3.1 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -339,9 +367,11 @@ class Game {
   island() {
     this.setScene("island");
     this.screen.innerHTML = `<div class="next-goal"><strong>つぎの おたのしみ</strong>${E(this.nextGoal())}</div><div class="scene-bar walk-bar"><span>↑ ↓ ← → ／ W A S D で あるこう<br><small>たてものを おすと、そこまで あるくよ</small></span><button class="primary" id="walk-enter" data-a="walkenter" disabled>いりぐちへ あるこう</button><button data-a="overview">${this.walkOverview ? "じぶんを みる" : "しまを みわたす"}</button><button data-a="fullscreen">⛶</button></div>`;
+    this.syncInteractionState();
     if (this.noticeQueue.length) {
       const m = this.noticeQueue.shift();
       this.world.set("arrival", this.s, { friend: m.subjectId });
+      this.syncInteractionState();
       this.world.hero?.setState("happy");
       this.say(
         "あたらしい ともだち",
@@ -355,11 +385,7 @@ class Game {
   }
   selectWorld(action) {
     if (this.modalOpen) return;
-    if (
-      this.scene === "island" &&
-      this.world.name === "island" &&
-      document.querySelector("#walk-enter")
-    ) {
+    if (this.interactionState().walkingEnabled) {
       const door = doors.find((f) => f.id === action);
       if (door) {
         const route = findPathToDoor(this.world.hero.position, door);
@@ -391,14 +417,7 @@ class Game {
     this.action(action).catch((e) => this.error(e));
   }
   updateWalk(dt) {
-    if (
-      this.scene !== "island" ||
-      this.world.name !== "island" ||
-      this.modalOpen ||
-      !this.world.hero ||
-      !document.querySelector("#walk-enter")
-    )
-      return;
+    if (!this.interactionState().walkingEnabled || !this.world.hero) return;
     const hero = this.world.hero,
       p = hero.position;
     let x =
@@ -479,6 +498,7 @@ class Game {
     this.setScene("mansion");
     this.screen.innerHTML =
       '<div class="scene-bar"><button data-a="island">しまへ</button><button class="primary" data-a="room">じぶんのへや</button></div>';
+    this.syncInteractionState();
   }
   room(friend = null) {
     this.roomFriend = friend;
@@ -488,24 +508,27 @@ class Game {
       this.commit().catch((e) => this.error(e));
     }
     this.screen.innerHTML = `<div class="scene-bar"><button data-a="mansion">まんしょんへ</button>${friend ? `<button class="primary" data-a="friend:${friend}">おはなし</button>` : '<button data-a="decorate">もようがえ</button><button data-a="wardrobe">きせかえ</button><button data-a="display">これくしょんを かざる</button>'}</div>`;
+    this.syncInteractionState();
   }
   say(name, text, choices = [["つづける", "closedialog"]]) {
+    this.walkKeys.clear();
     this.modalOpen = true;
     this.world.paused = false;
-    this.world.setInteractionsEnabled(false);
-    document.querySelector("#labels").classList.add("hidden");
     this.dialog.innerHTML = `<div class="dialog"><h2>${E(name)}</h2><p>${E(text)}</p><div class="row">${choices
       .slice(0, 3)
       .map(([label, a]) => `<button data-a="${a}">${E(label)}</button>`)
       .join("")}</div></div>`;
+    this.syncInteractionState();
   }
   closeDialog() {
     this.dialog.innerHTML = "";
     this.modalOpen = false;
     this.world.paused = false;
-    const panelOpen = !!this.screen.querySelector(".panel");
-    this.world.setInteractionsEnabled(!panelOpen);
-    document.querySelector("#labels").classList.toggle("hidden", panelOpen);
+    if (shouldRestoreIsland(this.scene, this.world.name)) {
+      this.island();
+      return;
+    }
+    this.syncInteractionState();
   }
   async friend(id) {
     if (!this.s.friends[id]) return;
@@ -1019,15 +1042,12 @@ class Game {
     this.walkKeys.clear();
     this.modalOpen = true;
     this.world.paused = true;
-    this.world.setInteractionsEnabled(false);
-    document.querySelector("#labels").classList.add("hidden");
     this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>ひとやすみ</h2><div class="grid two"><button class="primary" data-a="resume">つづける</button><button data-a="settings">せってい</button>${this.activity ? '<button data-a="restartactivity">やりなおす</button><button data-a="quitactivity">やめる</button>' : ""}<button data-a="quickhome">🏝 しまへ</button><button data-a="export">ばっくあっぷ</button><button data-a="confirmtitle">たいとるへ</button></div></section></div>`;
+    this.syncInteractionState();
   }
   settings() {
     this.modalOpen = true;
     this.world.paused = true;
-    this.world.setInteractionsEnabled(false);
-    document.querySelector("#labels").classList.add("hidden");
     this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>せってい</h2><p><label>BGM <input type="range" min="0" max="1" step=".05" value="${this.s.settings.music}" data-setting="music"></label></p><p><label>おと <input type="range" min="0" max="1" step=".05" value="${this.s.settings.sound}" data-setting="sound"></label></p><p>がめんのきれいさ <select data-setting="quality">${[
       ["low", "かるい"],
       ["standard", "ふつう"],
@@ -1040,6 +1060,7 @@ class Game {
       .join(
         "",
       )}</select></p><p><label><input type="checkbox" data-setting="keyboard" ${this.s.settings.keyboard ? "checked" : ""}> きーぼーどがいど</label></p><div class="row"><button data-a="export">JSONほぞん</button><button data-a="importslot:${this.s.meta.slotId}">JSONふくげん</button><button data-a="quickhome">🏝 しまへ</button><button data-a="fullscreen">がめんをおおきく</button><button class="primary" data-a="resume">もどる</button></div></section></div>`;
+    this.syncInteractionState();
   }
   async importSlot(slot) {
     const input = document.createElement("input");
@@ -1134,11 +1155,14 @@ class Game {
     }
   }
   key(e) {
+    if (e.code === "Escape") {
+      e.preventDefault();
+      if (this.modalOpen) this.closeDialog();
+      else if (this.s) this.pause();
+      return;
+    }
     if (
-      this.scene === "island" &&
-      this.world.name === "island" &&
-      document.querySelector("#walk-enter") &&
-      !this.modalOpen &&
+      this.interactionState().walkingEnabled &&
       !["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)
     ) {
       if (
@@ -1154,6 +1178,8 @@ class Game {
         ].includes(e.code)
       ) {
         e.preventDefault();
+        this.walkPath = [];
+        this.walkDestination = null;
         this.walkKeys.add(e.code);
         return;
       }
@@ -1164,12 +1190,6 @@ class Game {
       }
     }
     if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
-    if (e.code === "Escape") {
-      e.preventDefault();
-      if (this.modalOpen) this.closeDialog();
-      else if (this.s) this.pause();
-      return;
-    }
     if (this.modalOpen && e.code === "Tab") {
       const buttons = [
         ...this.dialog.querySelectorAll("button:not(:disabled),input,select"),

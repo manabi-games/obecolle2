@@ -132,9 +132,10 @@ input[type="range"] {
 #hud {
   z-index: 5;
   padding: 18px 24px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(210px, auto) auto minmax(0, 1fr);
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: stretch;
   gap: 15px;
 }
 #hud button {
@@ -164,6 +165,8 @@ input[type="range"] {
 }
 .hud-actions {
   display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .panel {
@@ -318,7 +321,7 @@ input[type="range"] {
 .next-goal {
   position: absolute;
   right: 24px;
-  top: 108px;
+  top: 116px;
   width: 245px;
   background: #fff5dfeb;
   border: 3px solid #fffbe8;
@@ -875,6 +878,8 @@ button[aria-pressed="true"] {
 .walk-bar {
   align-items: center;
   gap: 20px;
+  max-width: calc(100% - 52px);
+  flex-wrap: wrap;
 }
 .walk-bar span {
   font-size: 17px;
@@ -1413,4 +1418,47 @@ button[aria-pressed="true"] {
 }
 @media (max-width: 800px) {
   .answer-mark { font-size: min(46vw, 190px); }
+}
+
+/* v1.3.1 interaction and HUD stabilization */
+@media (max-width: 1450px) {
+  #hud {
+    grid-template-columns: auto auto;
+  }
+  #hud .profile {
+    grid-row: 1;
+  }
+  #hud .wallet {
+    grid-row: 2;
+    justify-self: start;
+    margin-top: -4px;
+  }
+  .hud-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-content: flex-start;
+  }
+  .next-goal {
+    top: 124px;
+  }
+}
+
+@media (max-height: 760px) {
+  #hud {
+    padding-top: 12px;
+  }
+  #hud .profile,
+  #hud .wallet {
+    padding: 7px 15px;
+  }
+  #hud button {
+    padding: 7px 13px;
+  }
+  .next-goal {
+    top: 105px;
+    padding: 12px 14px;
+  }
+  .scene-bar {
+    bottom: 16px;
+  }
 }

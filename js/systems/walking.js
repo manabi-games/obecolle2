@@ -12,7 +12,7 @@ export function walkable(x, z) {
     (f) =>
       f.id !== "plaza" &&
       Math.abs(x - f.x) < (f.id === "mansion" ? 2.8 : 1.95) &&
-      Math.abs(z - f.z) < 2.0,
+      Math.abs(z - f.z) <= 2.05,
   );
 }
 
