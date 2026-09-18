@@ -544,8 +544,7 @@ class Game {
     this.say(
       friend.name,
       `${names[r.metric]}を ${r.target}かい おねがい！
-いま ${Math.min(r.target, progress)} / ${r.target}${done ? "
-できた！ ほうこくしよう。" : ""}`,
+いま ${Math.min(r.target, progress)} / ${r.target}${done ? "\nできた！ ほうこくしよう。" : ""}`,
       done
         ? [
             ["できたよ！", "fulfill:" + id],
@@ -1122,10 +1121,8 @@ ${x.fact}`;
 ${x.favoriteActivity}が すき`;
     } else if (category === "cards") {
       const c = D.CREATURES.find((row) => row.id === id);
-      text = `${Object.entries(c.stats).map(([k, v]) => k + " " + "★".repeat(Math.ceil(v / 20))).join("
-")}
-${c.move}${this.s.arena.shinyCards.includes(id) ? "
-きらかーど！" : ""}`;
+      text = `${Object.entries(c.stats).map(([k, v]) => k + " " + "★".repeat(Math.ceil(v / 20))).join("\n")}
+${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
     } else if (category === "trophies") {
       text = "がんばった きろくの きねんひんだよ。";
     } else {
