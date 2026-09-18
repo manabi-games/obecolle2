@@ -10,6 +10,7 @@ import {
   TOURNAMENTS,
   ANIMALS,
   ACHIEVEMENTS,
+  RODS,
 } from "../data/catalog.js";
 const object = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
 const integer = (n, max = 1e9) => Number.isSafeInteger(n) && n >= 0 && n <= max;
@@ -18,15 +19,18 @@ export function validateSaveData(s) {
   if (!object(s)) return ["せーぶの かたちが ちがうよ"];
   if (s.saveVersion !== 1) errors.push("たいおうしていないsaveVersion");
   if (s.gameVersion !== "1.0.0") errors.push("たいおうしていないgameVersion");
+  const legacyOptional = new Set(["save.room.wallpaper", "save.room.floor"]);
   const shape = (a, t, path) => {
     for (const [k, v] of Object.entries(t)) {
       const x = a?.[k],
         p = path + "." + k;
+      if (x === undefined && legacyOptional.has(p)) continue;
       if (Array.isArray(v)) {
         if (!Array.isArray(x)) errors.push(p + " must be array");
       } else if (object(v)) {
         if (!object(x)) errors.push(p + " must be object");
-        else if (p !== "save.room.slots") shape(x, v, p);
+        else if (!["save.room.slots", "save.inventory.specialItems"].includes(p))
+          shape(x, v, p);
       } else if (v !== null && typeof x !== typeof v) errors.push(p + " type");
     }
   };
@@ -40,6 +44,43 @@ export function validateSaveData(s) {
   if (!integer(s.meta.slotId, 3) || s.meta.slotId < 1) errors.push("slotId");
   if (!s.player.name.trim() || [...s.player.name].length > 8)
     errors.push("name");
+  const appearanceLimits = {
+    skin: 4,
+    hair: 11,
+    hairColor: 7,
+    eyes: 11,
+    brows: 4,
+    mouth: 7,
+    face: 5,
+    nose: 4,
+    eyewear: 5,
+  };
+  for (const [key, max] of Object.entries(appearanceLimits))
+    if (
+      s.player.appearance[key] !== undefined &&
+      !integer(s.player.appearance[key], max)
+    )
+      errors.push("appearance " + key);
+  const outfit = ITEMS.find((x) => x.id === s.player.appearance.outfit);
+  if (
+    !outfit ||
+    outfit.type !== "clothing" ||
+    !s.inventory.clothing[s.player.appearance.outfit]
+  )
+    errors.push("appearance outfit");
+  for (const [key, prefix] of [
+    ["hat", "hat_"],
+    ["glasses", "glasses_"],
+  ]) {
+    const id = s.player.appearance[key];
+    if (
+      id !== undefined &&
+      (!String(id).startsWith(prefix) ||
+        ITEMS.find((x) => x.id === id)?.type !== "accessories" ||
+        !s.inventory.accessories[id])
+    )
+      errors.push("appearance " + key);
+  }
   for (const k of ["stars", "coins", "tickets"])
     if (!integer(s.progression[k])) errors.push(k);
   if (!integer(s.progression.manabiRank, 10) || s.progression.manabiRank < 1)
@@ -144,6 +185,20 @@ export function validateSaveData(s) {
   refs(Object.values(s.room.slots), ITEMS, "room item");
   for (const id of Object.values(s.room.slots))
     if (!s.inventory.furniture[id]) errors.push("room ownership");
+  for (const id of new Set(Object.values(s.room.slots))) {
+    const placed = Object.values(s.room.slots).filter((x) => x === id).length;
+    if (placed > (s.inventory.furniture[id] || 0))
+      errors.push("room quantity");
+  }
+  const equippedRod = RODS.find((x) => x.id === s.fishing.equippedRod);
+  if (
+    !equippedRod ||
+    !s.fishing.ownedRods.includes(s.fishing.equippedRod)
+  )
+    errors.push("equipped rod");
+  const memoryIds = new Set(s.memories.map((m) => m.id));
+  if (s.room.photos.some((id) => !memoryIds.has(id)))
+    errors.push("photo reference");
   refs(s.room.dinosaurFigures, DINOS, "figures");
   refs(s.collections.animals, ANIMALS, "animals");
   refs(s.progression.unlockedFacilities, FACILITIES, "facility");
@@ -250,6 +305,10 @@ export function migrateSave(data) {
     }
   }
   migrated.dinosaurs.completedCount = completedCount;
+  migrated.room.wallpaper ||= "wallpaper_0";
+  migrated.room.floor ||= "floor_0";
+  migrated.inventory.specialItems[migrated.room.wallpaper] ||= 1;
+  migrated.inventory.specialItems[migrated.room.floor] ||= 1;
   return migrated;
 }
 export function checksum(text) {

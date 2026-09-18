@@ -171,12 +171,12 @@ const main = fs.readFileSync(new URL("../js/main.js", import.meta.url), "utf8");
 const games = fs.readFileSync(new URL("../js/games.js", import.meta.url), "utf8");
 const audio = fs.readFileSync(new URL("../js/core/audio.js", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../css/game.css", import.meta.url), "utf8");
-assert.ok(main.includes("Version 1.3.2"));
+assert.ok(main.includes("Version 1.4.0"));
 assert.ok(main.includes("findPathToDoor"));
 assert.ok(main.includes('class="home-action" data-a="quickhome"'));
 assert.ok(main.includes('<button data-a="quickhome">🏝 しまへ</button>'));
 assert.ok(main.includes('data-a="typelevel:basic:${t.level}"'));
-assert.ok(main.includes("きほんLv${nextMode.level - 1}を くりあすると OPEN"));
+assert.ok(main.includes("きほんLv${nextMode.level - 1}を くりあすると ひらくよ！"));
 assert.ok(main.includes('case "speakquestion"'));
 assert.ok(games.includes('mark.textContent = ok ? "○" : "×"'));
 assert.ok(games.includes('data-a="school">きょうかをえらぶ'));
@@ -187,5 +187,5 @@ assert.ok(css.includes("/* v1.3 playability rebuild */"));
 assert.ok(css.includes(".answer-mark.correct"));
 
 console.log(
-  `PASS: Obecolle2 v1.3.2 verifier (${generated} questions; coverage fish=${creatureCoverage.fish.size}, dinos=${creatureCoverage.dinosaurs.size}, animals=${creatureCoverage.animals.size})`,
+  `PASS: Obecolle2 v1.4.0 compatibility verifier (${generated} questions; coverage fish=${creatureCoverage.fish.size}, dinos=${creatureCoverage.dinosaurs.size}, animals=${creatureCoverage.animals.size})`,
 );

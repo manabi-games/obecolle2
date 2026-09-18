@@ -296,7 +296,7 @@ export class World {
         const friend = FRIENDS.find((f) => f.id === params.friend);
         if (friend) {
           const c = this.human(
-            { ...friend.baseAppearance, outfitIndex: friend.defaultOutfit },
+            { ...friend.baseAppearance, outfit: "clothing_" + friend.defaultOutfit },
             1,
             12,
             "wave",
@@ -319,7 +319,7 @@ export class World {
         for (let i = 0; i < 30; i++) {
           const angle = (i / 30) * Math.PI * 2,
             c = this.human(
-              { ...FRIENDS[i].baseAppearance, outfitIndex: i },
+              { ...FRIENDS[i].baseAppearance, outfit: "clothing_" + FRIENDS[i].defaultOutfit },
               Math.sin(angle) * 5,
               Math.cos(angle) * 5 + 1,
               "happy",
@@ -366,7 +366,7 @@ export class World {
         const c = this.human(
           id === "self"
             ? s.player.appearance
-            : { ...f.baseAppearance, outfitIndex: f.defaultOutfit },
+            : { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit },
           x,
           1.5,
           ["read", "type", "wave", "sleep"][i % 4],
@@ -421,9 +421,11 @@ export class World {
       this.typingCreature.visible = ["escape", "battle"].includes(params.mode);
       this.rescueFish = [];
       if (params.mode === "rescue") {
+        const start = ((Math.max(1, params.level || 1) - 1) * 5) % FISH.length;
         for (let i = 0; i < 5; i++) {
+          const fish = FISH[(start + i) % FISH.length];
           const f = this.add(
-            creatureModel(FISH[i], 0.65),
+            creatureModel(fish, 0.65),
             3.7 + (i % 2) * 1.1,
             0.9 + Math.floor(i / 2) * 0.8,
             1,
@@ -597,18 +599,28 @@ export class World {
       this.add(bird, -8 + i * 4, 6, -7 + i * 2);
       this.ambient.push({ obj: bird, type: "bird", phase: i * 2 });
     }
-    const ids =
+    const allFriendIds =
       this.name === "celebration"
         ? []
         : this.save
-          ? Object.keys(this.save.friends).slice(0, 6)
+          ? Object.keys(this.save.friends)
           : FRIENDS.slice(0, 4).map((f) => f.id);
-    ids.forEach((id, i) => {
+    const visibleFriendIds = allFriendIds.slice(0, 30);
+    visibleFriendIds.forEach((id, i) => {
       const f = FRIENDS.find((x) => x.id === id);
+      if (!f) return;
+      const ring = Math.floor(i / 10),
+        ringStart = ring * 10,
+        ringCount = Math.min(10, visibleFriendIds.length - ringStart),
+        slot = i - ringStart,
+        angle = (slot / Math.max(1, ringCount)) * Math.PI * 2 + ring * 0.28,
+        radius = 4.8 + ring * 2.8,
+        x = Math.sin(angle) * radius,
+        z = Math.cos(angle) * radius;
       const c = this.human(
-        { ...f.baseAppearance, outfitIndex: f.defaultOutfit },
-        -4 + i * 1.8,
-        3 + (i % 2) * 2,
+        { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit },
+        x,
+        z,
         ["walk", "read", "wave", "think"][i % 4],
         0.75,
       );
@@ -616,6 +628,7 @@ export class World {
       c.userData.origin = c.position.clone();
       this.interact(c, "friend:" + id, f.name, 2);
       this.labels.at(-1).hoverOnly = true;
+      this.labels.at(-1).strictHover = true;
     });
     if (this.save) {
       this.hero = this.human(this.save.player.appearance, 0, 5, "idle", 0.85);
@@ -664,15 +677,17 @@ export class World {
       if (item) {
         const m = this.add(furniture(item), x, 0, z);
         this.interact(m, "furniture:" + i, item.name, 1.6);
+        this.labels.at(-1).strictHover = true;
       } else {
         const m = this.box("#c4ac85", [1.7, 0.03, 1.2], [x, 0.02, z]);
         this.interact(m, "furniture:" + i, "＋ おく", 0.4);
+        this.labels.at(-1).strictHover = true;
       }
     }
     const f = FRIENDS.find((f) => f.id === friendId);
     this.hero = this.human(
       f
-        ? { ...f.baseAppearance, outfitIndex: f.defaultOutfit }
+        ? { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit }
         : s.player.appearance,
       -0.4,
       2,
@@ -683,11 +698,15 @@ export class World {
       this.hero.userData.origin = this.hero.position.clone();
       this.hero.userData.needs = s.friends[friendId].needs;
     }
-    if (friendId) this.interact(this.hero, "friend:" + friendId, f.name, 2.2);
+    if (friendId) {
+      this.interact(this.hero, "friend:" + friendId, f.name, 2.2);
+      this.labels.at(-1).strictHover = true;
+    }
     this.box("#d2e9e1", [1, 0.9, 0.4], [3.8, 0.85, 2.8]);
     if (!friendId) {
       const mirror = this.box("#b9dfe0", [0.1, 1.3, 0.8], [-4.25, 1.3, 2.5]);
       this.interact(mirror, "mirror", "かがみ", 1);
+      this.labels.at(-1).strictHover = true;
     }
     if (s.inventory.specialItems.aquarium_small) {
       this.box("#90cdd1", [1.5, 0.8, 0.7], [2, 1.2, -3.2]);
@@ -899,7 +918,9 @@ export class World {
         (FACILITIES.some((f) => f.id === l.id)
           ? distanceToHero < 5.2
           : distanceToHero < 2.5);
-      const relevant = !l.hoverOnly || this.hovered === l.id || nearby;
+      const relevant = l.strictHover
+        ? this.hovered === l.id
+        : !l.hoverOnly || this.hovered === l.id || nearby;
       p.y += l.offset;
       p.project(this.camera);
       const screenX = (p.x * 0.5 + 0.5) * innerWidth;

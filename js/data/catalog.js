@@ -15,12 +15,12 @@ const SUBJECT_LEVELS = {
 export const SUBJECTS = [
   ["math", "さんすう", "＋"],
   ["japanese", "こくご", "あ"],
-  ["clock", "とけい", "◷"],
-  ["money", "おかね", "えん"],
+  ["clock", "とけい", "🕒"],
+  ["money", "おかね", "¥"],
   ["english", "えいご", "A"],
-  ["fish", "さかな", "さかな"],
-  ["dinosaurs", "きょうりゅう", "ほね"],
-  ["animals", "いきもの", "あし"],
+  ["fish", "さかな", "🐟"],
+  ["dinosaurs", "きょうりゅう", "🦖"],
+  ["animals", "いきもの", "🐾"],
 ].map(([id, name, icon]) => ({
   id,
   name,
@@ -126,27 +126,30 @@ const fishRows = [
   ["ろうにんあじ", "ろうにんあじ", 6, 150],
   ["ばしょうかじき", "ばしょうかじき", 6, 280],
 ];
+const FISH_RARITIES = [1, 1, 1, 2, 1, 2, 2, 1, 1, 2, 2, 2, 1, 1, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 2, 1, 1, 2, 2, 2, 2, 2, 3, 3, 2, 1, 2, 3, 1, 3, 3, 4, 2, 3, 4, 4, 4, 3, 2, 2, 3, 4, 4, 3, 5, 4, 3, 4, 3, 4];
+const FISH_VISUAL = {
+  めだか: "tiny", たなご: "tiny", もつご: "tiny",
+  どじょう: "eel", うなぎ: "eel", うつぼ: "eel", ふうせんうなぎ: "eel",
+  ひらめ: "flat", かれい: "flat",
+  はりせんぼん: "puffer", かじき: "sword", ばしょうかじき: "sword",
+  まんぼう: "sunfish", ちょうちんあんこう: "angler",
+  おにいとまきえい: "ray", りゅうぐうのつかい: "ribbon",
+  よしきりざめ: "shark", しゅもくざめ: "shark", らぶか: "shark",
+  みつくりざめ: "shark", じんべえざめ: "shark",
+  ほほじろざめ: "shark", めがまうす: "shark",
+};
 export const FISH = fishRows.map(([name, kana, area, size], i) => ({
   id: "fish_" + String(i + 1).padStart(2, "0"),
   name,
   kana,
   area: "water_" + area,
-  rarity: (i % 5) + 1,
+  rarity: FISH_RARITIES[i],
   size,
   color: ["#f2a969", "#7ac8d0", "#95b4db", "#e7c960", "#b6a0d1"][i % 5],
-  shape:
-    i >= 51
-      ? "shark"
-      : i === 0 || i === 6
-        ? "tiny"
-        : i === 37 || i === 59
-          ? "sword"
-          : i === 20 || i === 21
-            ? "flat"
-            : "fish",
+  shape: FISH_VISUAL[name] || "fish",
   fact:
     area === 0
-      ? "いけやすいろのなかま。ひれのうごきをみてみよう。"
+      ? "いけや みずろの なかま。ひれのうごきをみてみよう。"
       : area === 1
         ? "かわのなかま。からだのもようにもちゅうもく。"
         : area === 5
@@ -270,6 +273,18 @@ export const DINOS = dinoRows.map(
     fact: `${era}のきょうりゅう。たいちょうはやく${length}mとかんがえられているよ。`,
   }),
 );
+const ANIMAL_VISUAL = {
+  らいおん: "feline", とら: "feline", すみろどん: "feline",
+  ぞう: "elephant", まんもす: "elephant", かば: "hippo", さい: "rhino",
+  ごりら: "primate", きりん: "giraffe", ぱんだ: "bear", ひぐま: "bear",
+  こあら: "koala", かんがるー: "kangaroo", うさぎ: "rabbit", りす: "squirrel",
+  らくだ: "camel", わに: "crocodile", かめ: "turtle", かえる: "frog",
+  ぺんぎん: "bird", だちょう: "bird", ふくろう: "bird", わし: "bird",
+  いるか: "cetacean", しゃち: "cetacean", しろながすくじら: "cetacean",
+  あざらし: "pinniped", らっこ: "otter", たこ: "octopus", くらげ: "jellyfish",
+  めがろどん: "shark", もささうるす: "marine_reptile",
+  ぷてらのどん: "pterosaur", えらすもさうるす: "plesiosaur",
+};
 const animalNames =
   "らいおん,とら,ぞう,かば,さい,ごりら,きりん,しまうま,ぱんだ,こあら,かんがるー,ひぐま,おおかみ,きつね,たぬき,うさぎ,りす,しか,らくだ,あるぱか,わに,かめ,かえる,ぺんぎん,だちょう,ふくろう,わし,いるか,しゃち,しろながすくじら,あざらし,らっこ,たこ,くらげ,まんもす,すみろどん,めがろどん,もささうるす,ぷてらのどん,えらすもさうるす".split(
     ",",
@@ -279,7 +294,7 @@ export const ANIMALS = animalNames.map((name, i) => ({
   name,
   kana: name,
   category: i >= 34 ? "ancient" : i >= 27 ? "ocean" : "land",
-  shape: i >= 27 && i < 32 ? "fish" : i === 38 ? "wing" : "animal",
+  shape: ANIMAL_VISUAL[name] || "quadruped",
   color: ["#ddab74", "#cf985d", "#a4b8bc", "#99b5a0", "#cfb1c5"][i % 5],
   fact:
     i >= 34

@@ -116,7 +116,7 @@ export function newSave(slotId, name = "なまえ", appearance = {}) {
       },
       clothing: { clothing_0: 1 },
       accessories: {},
-      specialItems: {},
+      specialItems: { wallpaper_0: 1, floor_0: 1 },
     },
     room: {
       wallpaper: "wallpaper_0",
@@ -215,9 +215,22 @@ export function evaluate(s) {
       s.dinosaurs.completedCount >= a.completed &&
       (s.dinosaurs.completedCount > 0 || a.id === "dig_0"),
   ).map((a) => a.id);
+  const ownedArenaCreatures = [
+    ...ANIMALS.filter((a) => s.collections.animals.includes(a.id)),
+    ...FISH.filter((f) => !!s.fishing.fishBook[f.id]),
+    ...DINOS.filter((d) => !!s.dinosaurs.fossilBook[d.id]?.completed),
+  ];
   s.arena.unlockedTournaments = TOURNAMENTS.filter(
-    (a, i) => rank >= a.rank && (i !== 2 || s.dinosaurs.completedCount >= 10),
+    (a) =>
+      rank >= a.rank &&
+      (a.id !== "cup_2" || s.dinosaurs.completedCount >= 10) &&
+      ownedArenaCreatures.some((c) => arenaEligible(a.id, c)),
   ).map((a) => a.id);
+  if (
+    s.arena.active &&
+    !s.arena.unlockedTournaments.includes(s.arena.active.cup)
+  )
+    s.arena.unlockedTournaments.push(s.arena.active.cup);
   for (const friend of FRIENDS) {
     if (s.friends[friend.id]) continue;
     const ok =
@@ -511,33 +524,24 @@ export function digReward(s, rng = Math.random) {
   metric(s, "dig");
   return { d, isNew, coins };
 }
-export function restoreDinosaur(s, id) {
-  const d = DINOS.find((d) => d.id === id),
-    b = s.dinosaurs.fossilBook[id];
-  if (!d || !b || b.completed || !d.parts.every((p) => b.parts.includes(p)))
-    throw Error("ひつようなぱーつをあつめよう");
-  b.completed = true;
-  b.completedAt = new Date().toISOString();
-  s.dinosaurs.completedCount++;
-  s.inventory.specialItems["figure_" + id] = 1;
-  remember(s, "dinosaur", d.name + " ふくげん！", id);
-}
 export function purchase(s, id) {
   const item = ITEMS.find((x) => x.id === id) || RODS.find((x) => x.id === id);
-  if (!item) throw Error("しょうひんがみつかりません");
-  if (item.rewardOnly) throw Error("このふくはごほうびです");
+  if (!item) throw Error("しょうひんが みつからないよ");
+  if (item.rewardOnly) throw Error("このふくは ごほうびだよ");
   const requirement = itemRequirement(id, s);
-  if (requirement) throw Error(requirement + "でかえるよ");
-  if (s.progression.manabiRank < item.rank) throw Error("らんくがあしりません");
-  if (s.progression.coins < item.price) throw Error("こいんがあしりないよ");
+  if (requirement) throw Error(requirement + "で かえるよ");
+  if (s.progression.manabiRank < item.rank) throw Error("らんくが たりないよ");
+  if (s.progression.coins < item.price) throw Error("こいんが たりないよ");
   if (id.startsWith("rod_")) {
-    if (s.fishing.ownedRods.includes(id)) throw Error("もっているよ");
+    if (s.fishing.ownedRods.includes(id)) throw Error("もう もっているよ");
     s.fishing.ownedRods.push(id);
     s.fishing.equippedRod = id;
   } else {
     const cat = ["wallpaper", "floor"].includes(item.type)
       ? "specialItems"
       : item.type;
+    if (item.type !== "furniture" && s.inventory[cat][id])
+      throw Error("もう もっているよ");
     s.inventory[cat][id] = (s.inventory[cat][id] || 0) + 1;
   }
   s.progression.coins -= item.price;
@@ -564,6 +568,7 @@ export function friendMilestone(s, id) {
 }
 export function requestFriend(s, id) {
   const f = s.friends[id];
+  if (!f) throw Error("その ともだちは まだ しまに いないよ");
   if (f.request) return f.request;
   if (Object.values(s.friends).filter((x) => x.request).length >= 4)
     throw Error("まずいまのおねがいをかなえてあげよう");
@@ -582,8 +587,9 @@ export function requestFriend(s, id) {
   return f.request;
 }
 export function fulfillRequest(s, id) {
-  const f = s.friends[id],
-    r = f.request;
+  const f = s.friends[id];
+  if (!f) throw Error("その ともだちは まだ しまに いないよ");
+  const r = f.request;
   if (!r || (s.progression.metrics[r.metric] || 0) - r.start < r.target)
     throw Error("おねがいをかなえてから またきてね");
   f.affinity = Math.min(100, f.affinity + 5);
@@ -591,22 +597,29 @@ export function fulfillRequest(s, id) {
   f.request = null;
   friendMilestone(s, id);
 }
+export function availableFurnitureCount(s, itemId) {
+  const owned = s.inventory.furniture[itemId] || 0,
+    placed = Object.values(s.room.slots).filter((x) => x === itemId).length;
+  return Math.max(0, owned - placed);
+}
 export function gift(s, id, itemId) {
-  const item = ITEMS.find((i) => i.id === itemId);
-  if (!item || item.type !== "furniture" || !s.inventory.furniture[itemId])
-    throw Error("おくれるかぐをえらんでね");
-  if (Object.values(s.room.slots).includes(itemId))
-    throw Error("へやにおいているかぐは、さきにかたづけよう");
+  const item = ITEMS.find((i) => i.id === itemId),
+    friend = s.friends[id];
+  if (!friend || !item || item.type !== "furniture")
+    throw Error("おくれる かぐを えらんでね");
+  if (availableFurnitureCount(s, itemId) < 1)
+    throw Error("おへやで つかっていない かぐを おくろう");
   s.inventory.furniture[itemId]--;
-  s.friends[id].gifts.push(itemId);
-  s.friends[id].affinity = Math.min(
+  friend.gifts.push(itemId);
+  friend.affinity = Math.min(
     100,
-    s.friends[id].affinity +
+    friend.affinity +
       (item.theme === FRIENDS.findIndex((f) => f.id === id) % 6 ? 8 : 3),
   );
   friendMilestone(s, id);
 }
 export function claimChest(s, rng = Math.random) {
+  refreshMissions(s);
   if (s.missions.completedToday || !s.missions.daily.every((x) => x.claimed))
     throw Error("3つできたらひらくよ");
   const r = rng(),
@@ -619,14 +632,33 @@ export function claimChest(s, rng = Math.random) {
       (x) =>
         !x.rewardOnly &&
         ["furniture", "clothing"].includes(x.type) &&
-        x.rare === (tier === 2),
+        x.rare === (tier === 2) &&
+        (x.type !== "clothing" || !s.inventory.clothing[x.id]),
     );
-    item = choices[Math.floor(rng() * choices.length)];
-    s.inventory[item.type][item.id] =
-      (s.inventory[item.type][item.id] || 0) + 1;
+    if (choices.length) {
+      item = choices[Math.floor(rng() * choices.length)];
+      s.inventory[item.type][item.id] =
+        (s.inventory[item.type][item.id] || 0) + 1;
+    }
   }
   s.missions.completedToday = true;
   return { tier, item };
+}
+export function arenaEligible(cupId, creature) {
+  if (!creature) return false;
+  const category =
+    creature.category ||
+    (String(creature.id || "").startsWith("dino_")
+      ? "dinosaur"
+      : String(creature.id || "").startsWith("fish_")
+        ? "ocean"
+        : null);
+  if (["cup_0", "cup_5"].includes(cupId)) return true;
+  if (cupId === "cup_1") return category === "land";
+  if (cupId === "cup_2") return category === "dinosaur";
+  if (cupId === "cup_3") return category === "ocean";
+  if (cupId === "cup_4") return category === "ancient";
+  return false;
 }
 export function arenaScore(creature, learning, knowledge, typing) {
   return (

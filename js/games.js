@@ -4,7 +4,6 @@ import {
   DINOS,
   FISH,
   TYPING_MODES,
-  PART_NAMES,
   TOURNAMENTS,
 } from "./data/catalog.js";
 import { generateSession } from "./systems/learning.js";
@@ -20,6 +19,15 @@ const E = (x) =>
   );
 export const games = {
   startQuiz(subject, level, callback = null) {
+    const subjectInfo = SUBJECTS.find((x) => x.id === subject);
+    if (
+      !subjectInfo ||
+      !Number.isInteger(level) ||
+      level < 1 ||
+      level > subjectInfo.maxLevel ||
+      level > this.s.learning[subject].unlocked
+    )
+      throw Error("その がくしゅうLvは まだ えらべないよ");
     this.activity = {
       kind: "quiz",
       subject,
@@ -128,9 +136,18 @@ export const games = {
   },
   startTyping(mode = "basic", level = this.s.typing.level, callback = null) {
     const modeInfo = TYPING_MODES.find((x) => x.id === mode);
-    if (!callback && modeInfo && this.s.typing.level < modeInfo.level) return;
+    if (!modeInfo) throw Error("その たいぴんぐは えらべないよ");
+    if (
+      !Number.isInteger(level) ||
+      level < 1 ||
+      level > 20 ||
+      level > this.s.typing.level
+    )
+      throw Error("その たいぴんぐLvは まだ えらべないよ");
+    if (!callback && this.s.typing.level < modeInfo.level)
+      throw Error("その たいぴんぐは まだ ひらいていないよ");
     this.scene = "typing";
-    this.world.set("typing", this.s, { mode });
+    this.world.set("typing", this.s, { mode, level });
     this.audio.setScene("typing");
     const words = typingWords(level),
       a = (this.activity = {
@@ -156,7 +173,7 @@ export const games = {
               : 0,
       });
     this.panel(
-      `<div class="row spread"><h2>${callback ? "FINAL たいぴんぐ" : modeInfo?.name || "たいぴんぐ"}</h2><button data-a="pause">Ⅱ</button></div><div class="row spread"><span id="type-progress">1 / 5</span><span id="type-time">${a.timeLimit ? a.timeLimit + "びょう" : "じかんせいげんなし"}</span><span id="type-combo">0 こんぼ</span></div><div class="typing-word" id="type-word"></div><div class="roman" id="type-roman"></div><div class="feedback" id="type-feedback">きーぼーどで はじめよう</div><div class="progress-track"><div id="type-meter" style="width:0%"></div></div>${this.s.settings.keyboard ? '<div class="keyboard" id="keyboard"></div>' : ""}<p class="footnote">えいじきーでにゅうりょく・ひょうきゆれOK ／ Esc でひとやすみ</p>`,
+      `<div class="row spread"><h2>${callback ? "さいごの たいぴんぐ" : modeInfo?.name || "たいぴんぐ"}</h2><button data-a="pause">Ⅱ</button></div><div class="row spread"><span id="type-progress">1 / 5</span><span id="type-time">${a.timeLimit ? a.timeLimit + "びょう" : "じかんせいげんなし"}</span><span id="type-combo">0 こんぼ</span></div><div class="typing-word" id="type-word"></div><div class="roman" id="type-roman"></div><div class="feedback" id="type-feedback">きーぼーどで はじめよう</div><div class="progress-track"><div id="type-meter" style="width:0%"></div></div>${this.s.settings.keyboard ? '<div class="keyboard" id="keyboard"></div>' : ""}<p class="footnote">えいじきーでにゅうりょく・ひょうきゆれOK ／ Esc でひとやすみ</p>`,
       "small",
     );
     this.renderTyping();
@@ -251,7 +268,7 @@ export const games = {
         ? `<button class="primary" data-a="typelevel:basic:${a.level + 1}">つぎの Lv ${a.level + 1}へ</button>`
         : "";
     this.panel(
-      `<div class="result"><h2>${reward.isBest ? "じぶんべすと！" : "おつかれさま！"}</h2><div class="stars">${result.score}てん</div><p>せいかくさ ${result.accuracy.toFixed(0)}% ／ 1ぷんで ${result.speed.toFixed(0)}もじ</p><p>いちばん ${result.combo}こんぼ ／ ${result.words}ご</p><h3>なかまぱわー ＋${reward.power}</h3>${clearedBasic ? `<div class="typing-clear">✓ きほん Lv ${a.level} くりあ！</div>` : '<p>きほんは 5ご・せいかくさ60%以上で つぎのLvがひらくよ。</p>'}${opened.length ? `<div class="unlock-banner">🎉 ${opened.map((m) => m.name).join("・")} OPEN！</div>` : ""}<div class="result-actions">${nextBasic}<button data-a="typing">けんきゅうじょへ</button><button class="muted-button" data-a="island">しまへ</button></div></div>`,
+      `<div class="result"><h2>${reward.isBest ? "じぶんべすと！" : "おつかれさま！"}</h2><div class="stars">${result.score}てん</div><p>せいかくさ ${result.accuracy.toFixed(0)}% ／ 1ぷんで ${result.speed.toFixed(0)}もじ</p><p>いちばん ${result.combo}こんぼ ／ ${result.words}ご</p><h3>なかまぱわー ＋${reward.power}</h3>${clearedBasic ? `<div class="typing-clear">✓ きほん Lv ${a.level} くりあ！</div>` : '<p>きほんは 5ご・せいかくさ60%以上で つぎのLvがひらくよ。</p>'}${opened.length ? `<div class="unlock-banner">🎉 ${opened.map((m) => m.name).join("・")} ひらいたよ！</div>` : ""}<div class="result-actions">${nextBasic}<button data-a="typing">けんきゅうじょへ</button><button class="muted-button" data-a="island">しまへ</button></div></div>`,
       "small",
     );
   },
@@ -320,8 +337,8 @@ export const games = {
       this.audio.effect("reward");
     }
     this.panel(
-      `<div class="result"><h2>${result ? (result.isNew ? "あたらしい さかな！" : result.record ? "おおきさ しんきろく！" : "つれた！") : "にげちゃった。またちょうせんしよう！"}</h2>${result ? `${this.icon(result.fish)}<h3>${result.fish.name}</h3><p>${result.size} cm ／ ${"★".repeat(result.fish.rarity)}</p><p>${result.fish.fact}</p>` : ""}<button class="primary" data-a="${this.s.fishing.trip ? "nextcast" : "fishing"}">${this.s.fishing.trip ? "つぎのきゃすと" : "つりみなとへ"}</button></div>`,
-      "small",
+      `<div class="result reward-result"><h2>${result ? (result.isNew ? "あたらしい さかな！" : result.record ? "おおきさ しんきろく！" : "つれた！") : "にげちゃった。またちょうせんしよう！"}</h2>${result ? `<div class="reward-layout"><div class="reward-art">${this.icon(result.fish)}</div><div class="reward-copy"><h3>${result.fish.name}</h3><p class="reward-number">${result.size} cm ／ ${"★".repeat(result.fish.rarity)}</p><p>${result.fish.fact}</p></div></div>` : ""}<button class="primary" data-a="${this.s.fishing.trip ? "nextcast" : "fishing"}">${this.s.fishing.trip ? "つぎのきゃすと" : "つりみなとへ"}</button> <button data-a="island">しまへ</button></div>`,
+      "reward-panel",
     );
   },
   async beginDig(area, companionId = null) {
@@ -345,7 +362,7 @@ export const games = {
       brushHits: 0,
     };
     this.panel(
-      `<h2>のこり ${trip.remaining}かい</h2><p>きらきら している ばしょを 1つ えらぼう！</p><div class="dig-spots">${[0, 1, 2].map((i) => `<button class="dig-spot" data-a="digspot:${i}" aria-label="きらきら ${i + 1}"><span>✦</span><i></i></button>`).join("")}</div><p class="footnote">どこを えらんでも だいじょうぶ。20〜30びょうで 1ぴき みつかるよ。</p><button data-a="pause">Ⅱ</button>`,
+      `<h2>のこり ${trip.remaining}かい</h2><p>きらきら している ばしょを 1つ えらぼう！</p><div class="dig-spots">${[0, 1, 2].map((i) => `<button class="dig-spot" data-a="digspot:${i}" aria-label="きらきら ${i + 1}"><span>✦</span><i></i></button>`).join("")}</div><p class="footnote">どこを えらんでも だいじょうぶ。はんまーと ぶらしで みつけよう！</p><button data-a="pause">Ⅱ</button>`,
       "small",
     );
   },
@@ -397,51 +414,18 @@ export const games = {
     this.world.hero?.setState("happy");
     this.audio.effect("reward");
     this.panel(
-      `<div class="result"><h2>${r.isNew ? "NEW！ きょうりゅう はっけん！" : "また みつけたよ！"}</h2><div class="collection-icon detail-art">${this.icon(r.d)}</div><h3>${r.d.name}</h3><p>${r.isNew ? "かせきから まるごと ふくげん！ ずかんと ふぃぎゅあに ついかされたよ。" : `もう ふくげんずみだったよ。＋${r.coins}こいん！`}</p><p>${r.d.fact}</p><button class="primary" data-a="${this.s.dinosaurs.trip ? "nextdig" : "excavation"}">${this.s.dinosaurs.trip ? "つぎの きらきらへ" : "はっくつじまへ"}</button></div>`,
-      "small",
+      `<div class="result reward-result"><h2>${r.isNew ? "きょうりゅうを ふくげんした！" : "また みつけたよ！"}</h2><div class="reward-layout"><div class="reward-art">${this.icon(r.d)}</div><div class="reward-copy"><h3>${r.d.name}</h3><p>${r.isNew ? "ずかんと ふぃぎゅあに ついかされたよ！" : `ふくげんずみだったよ。＋${r.coins}こいん！`}</p><p>${r.d.fact}</p></div></div><button class="primary" data-a="${this.s.dinosaurs.trip ? "nextdig" : "excavation"}">${this.s.dinosaurs.trip ? "つぎの きらきらへ" : "はっくつじまへ"}</button> <button data-a="island">しまへ</button></div>`,
+      "reward-panel",
     );
-  },
-  restoration(id) {
-    const d = DINOS.find((d) => d.id === id),
-      b = this.s.dinosaurs.fossilBook[id];
-    if (!b || b.completed || b.parts.length !== 4)
-      throw Error("4つのぱーつをそろえよう");
-    this.activity = { kind: "restore", id, placed: [], selected: null };
-    this.panel(
-      `<h2>${d.name}を ふくげんしよう</h2><p>ぱーつをえらんで、おなじばしょにはめよう</p><div class="row">${d.parts.map((p) => `<button data-a="part:${p}">${PART_NAMES[p]}</button>`).join("")}</div><div class="grid two" style="margin-top:25px">${d.parts.map((p) => `<button data-a="socket:${p}">＋ ${PART_NAMES[p]}</button>`).join("")}</div>`,
-      "small",
-    );
-  },
-  async socket(part) {
-    const a = this.activity;
-    if (a?.kind !== "restore" || a.selected !== part)
-      return this.toast("おなじなまえのところにおこう");
-    if (a.placed.includes(part)) return;
-    a.placed.push(part);
-    document.querySelector(`[data-a="socket:${part}"]`).textContent =
-      "✓ " + PART_NAMES[part];
-    if (a.placed.length === 4) {
-      rules.restoreDinosaur(this.s, a.id);
-      await this.commit();
-      this.activity = null;
-      const d = DINOS.find((d) => d.id === a.id);
-      this.world.set("arena", this.s, { creature: d, opponent: d });
-      this.world.opponent.visible = false;
-      this.world.fighter.position.x = 0;
-      this.world.camera.position.set(3, 2.5, 8);
-      this.world.camera.lookAt(0, 1, 0);
-      this.panel(
-        `<div class="result"><h2>${d.name} ふくげん！</h2><p>${d.fact}</p><p>ずかんとふぃぎゅあについかされたよ</p><button class="primary" data-a="excavation">ふくげんらぼへ</button></div>`,
-        "right",
-      );
-    }
   },
   async startArena(cup, creature) {
     rules.assertArenaStartAllowed(this.s, cup);
     if (!this.s.arena.unlockedTournaments.includes(cup))
       throw Error("このたいかいはまだひらいていないよ");
-    if (!this.ownedCreatures().some((c) => c.id === creature))
-      throw Error("いきものをえらぼう");
+    const selected = this.ownedCreatures().find((c) => c.id === creature);
+    if (!selected) throw Error("いきものをえらぼう");
+    if (!rules.arenaEligible(cup, selected))
+      throw Error("このたいかいに でられる いきものを えらぼう");
     this.s.arena.active = { cup, wins: 0, creature };
     await this.commit();
     this.arenaMatch();
@@ -457,36 +441,50 @@ export const games = {
       typing: 0,
     };
     this.panel(
-      `<div class="result"><h2>${TOURNAMENTS.find((x) => x.id === active.cup).name}</h2><p>だい ${active.wins + 1}しあい ／ 3しあい</p><p>ROUND 1：がくしゅう → ROUND 2：ちしき → FINAL：たいぴんぐ</p><button class="primary" data-a="arenaround">はじめる</button></div>`,
+      `<div class="result"><h2>${TOURNAMENTS.find((x) => x.id === active.cup).name}</h2><p>だい ${active.wins + 1}しあい ／ 3しあい</p><p>ROUND 1：がくしゅう → ROUND 2：ちしき → FINAL：たいぴんぐ</p><button class="primary" data-a="arenaround">はじめる</button> <button data-a="island">しまへ</button></div>`,
       "small",
     );
   },
   arenaRoundStart() {
+    const active = this.s.arena.active,
+      cupIndex = TOURNAMENTS.findIndex((x) => x.id === active.cup),
+      subjects = ["math", "japanese", "clock", "money", "english"],
+      subject = subjects[(cupIndex + active.wins) % subjects.length],
+      maxLevel = SUBJECTS.find((x) => x.id === subject).maxLevel;
     this.startQuiz(
-      "math",
-      Math.min(
-        SUBJECTS.find((x) => x.id === "math").maxLevel,
-        this.s.learning.math.unlocked,
-      ),
+      subject,
+      Math.max(1, Math.min(maxLevel, this.s.learning[subject].unlocked)),
       (score) => {
         this.arenaRound.learn = score;
         this.panel(
-          `<div class="result"><h2>ROUND 1 できあがり！</h2><p>まなびぱわー ${score}</p><button class="primary" data-a="arenaknow">ROUND 2 ちしきへ</button></div>`,
+          `<div class="result"><h2>ROUND 1 できあがり！</h2><p>${SUBJECTS.find((x) => x.id === subject).name}の まなびぱわー ${score}</p><button class="primary" data-a="arenaknow">ROUND 2 ちしきへ</button></div>`,
           "small",
         );
       },
     );
   },
   arenaKnowledge() {
-    const subject = ["fish", "dinosaurs", "animals"][this.s.arena.active.wins];
-    const maxLevel = SUBJECTS.find((x) => x.id === subject).maxLevel;
+    const cup = this.s.arena.active.cup,
+      wins = this.s.arena.active.wins,
+      rotating = ["animals", "fish", "dinosaurs"],
+      subject =
+        cup === "cup_1"
+          ? "animals"
+          : cup === "cup_2"
+            ? "dinosaurs"
+            : cup === "cup_3"
+              ? "fish"
+              : cup === "cup_4"
+                ? "animals"
+                : rotating[wins % rotating.length],
+      maxLevel = SUBJECTS.find((x) => x.id === subject).maxLevel;
     this.startQuiz(
       subject,
       Math.max(1, Math.min(maxLevel, this.s.learning[subject].unlocked)),
       (score) => {
         this.arenaRound.knowledge = score;
         this.panel(
-          `<div class="result"><h2>ROUND 2 できあがり！</h2><p>ちしきがーど ${score}</p><button class="primary" data-a="arenatype">FINAL たいぴんぐへ</button></div>`,
+          `<div class="result"><h2>ROUND 2 できあがり！</h2><p>${SUBJECTS.find((x) => x.id === subject).name}の ちしきがーど ${score}</p><button class="primary" data-a="arenatype">さいごの たいぴんぐへ</button></div>`,
           "small",
         );
       },
@@ -502,11 +500,14 @@ export const games = {
     const round = this.arenaRound,
       c = CREATURES.find((c) => c.id === round.creature),
       cup = TOURNAMENTS.find((c) => c.id === round.cup),
+      eligibleOpponents = CREATURES.filter((x) =>
+        rules.arenaEligible(round.cup, x),
+      ),
       op =
-        CREATURES[
+        eligibleOpponents[
           (TOURNAMENTS.indexOf(cup) * 7 + this.s.arena.active.wins * 3 + 1) %
-            CREATURES.length
-        ];
+            eligibleOpponents.length
+        ] || c;
     const score = rules.arenaScore(
         c,
         round.learn,
@@ -526,6 +527,7 @@ export const games = {
     };
     this.screen.innerHTML =
       '<div class="arena-overlay"><h2 id="battle-text">まなびのちからを あつめて！</h2><button class="muted-button" data-a="battleskip">えんしゅつをすきっぷ</button></div>';
+    this.syncInteractionState();
   },
   async battleEnd() {
     const a = this.activity;
@@ -535,7 +537,7 @@ export const games = {
     if (a.won) reward = rules.arenaWin(this.s, a.creature.id);
     await this.commit();
     this.panel(
-      `<div class="result"><h2>${a.won ? (reward.champion ? "ゆうしょう おめでとう！" : "しょうり！") : "もういちど ちゃれんじ！"}</h2><p>ぜんぶ ${a.score.toFixed(1)} ／ がくしゅう${a.round.learn}・ちしき${a.round.knowledge}・たいぴんぐ${a.round.typing}</p><p>${reward?.champion ? `＋${reward.coins}こいん${reward.first ? "・とろふぃー・かーどもらった" : ""}` : a.won ? "つぎのしあいも がんばろう！" : "がくしゅうとたいぴんぐで、つぎはもっとつよくなれるよ。"}</p><button class="primary" data-a="${this.s.arena.active ? "arenacontinue" : "arena"}">${this.s.arena.active ? "たいかいをつづける" : "ありーなへ"}</button></div>`,
+      `<div class="result"><h2>${a.won ? (reward.champion ? "ゆうしょう おめでとう！" : "しょうり！") : "もういちど ちゃれんじ！"}</h2><p>ぜんぶ ${a.score.toFixed(1)} ／ がくしゅう${a.round.learn}・ちしき${a.round.knowledge}・たいぴんぐ${a.round.typing}</p><p>${reward?.champion ? `＋${reward.coins}こいん${reward.first ? "・とろふぃー・かーどもらった" : ""}` : a.won ? "つぎのしあいも がんばろう！" : "がくしゅうとたいぴんぐで、つぎはもっとつよくなれるよ。"}</p><button class="primary" data-a="${this.s.arena.active ? "arenacontinue" : "arena"}">${this.s.arena.active ? "たいかいをつづける" : "ありーなへ"}</button> <button data-a="island">しまへ</button></div>`,
       "small",
     );
   },

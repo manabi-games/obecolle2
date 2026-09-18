@@ -402,7 +402,8 @@ export function character(appearance = {}, scale = 1) {
         );
   }
   if (appearance.glasses || appearance.eyewear) {
-    const style = appearance.eyewear || 1;
+    const boughtStyle = String(appearance.glasses || "").match(/^glasses_(\d+)$/);
+    const style = boughtStyle ? (Number(boughtStyle[1]) % 5) + 1 : appearance.eyewear || 1;
     for (const x of [-0.19, 0.19]) {
       if (style === 5 && x < 0) continue;
       if (style === 2 || style === 3) {
@@ -616,22 +617,84 @@ export function animateCharacter(g, t, dt) {
 }
 export function fishModel(f, scale = 1) {
   const g = new THREE.Group(),
-    c = f.color || "#77b8c4",
-    long = f.shape === "shark" || f.shape === "sword";
-  add(g, "ball", c, [long ? 0.75 : 0.55, 0.27, 0.2], [0, 0, 0]);
-  const tail = add(g, "cone", c, [0.31, 0.45, 0.12], [-0.67, 0, 0]);
-  tail.rotation.z = Math.PI / 2;
-  const fin = add(g, "cone", c, [0.14, 0.3, 0.1], [0, 0.32, 0]);
-  for (const z of [-0.18, 0.18]) {
-    add(g, "ball", "#fafaf3", [0.08, 0.08, 0.025], [0.32, 0.07, z]);
-    add(g, "ball", "#343c43", [0.044, 0.05, 0.012], [0.35, 0.07, z * 1.13]);
+    c = f.color || "#6fa3b8",
+    shape = f.shape || "fish";
+  const body = (size = [0.75, 0.28, 0.25], pos = [0, 0.55, 0]) =>
+    add(g, "ball", c, size, pos);
+  const eye = (x = 0.5, y = 0.62, z = 0.2) => {
+    add(g, "ball", "#fffdf5", [0.06, 0.065, 0.025], [x, y, z]);
+    add(g, "ball", "#31403d", [0.028, 0.03, 0.012], [x + 0.015, y, z + 0.022]);
+  };
+  const tail = (x = -0.72, y = 0.55) => {
+    const t = add(g, "cone", c, [0.28, 0.45, 0.1], [x, y, 0]);
+    t.rotation.z = Math.PI / 2;
+    return t;
+  };
+
+  if (shape === "eel" || shape === "ribbon") {
+    body(shape === "ribbon" ? [1.0, 0.12, 0.12] : [0.95, 0.14, 0.14]);
+    const t = tail(-0.98, 0.55);
+    t.scale.y *= 0.6;
+    eye(0.72, 0.58, 0.12);
+  } else if (shape === "flat") {
+    body([0.75, 0.1, 0.48]);
+    tail(-0.72, 0.55);
+    eye(0.43, 0.66, 0.16);
+  } else if (shape === "puffer") {
+    body([0.47, 0.42, 0.42]);
+    tail(-0.48, 0.55);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const spike = add(
+        g,
+        "cone",
+        c,
+        [0.04, 0.18, 0.04],
+        [Math.cos(a) * 0.42, 0.55 + Math.sin(a) * 0.32, 0],
+      );
+      spike.rotation.z = -a;
+    }
+    eye(0.33, 0.65, 0.25);
+  } else if (shape === "sword") {
+    body([0.85, 0.24, 0.22]);
+    tail(-0.85, 0.55);
+    const bill = add(g, "cone", "#d7d0a2", [0.06, 0.75, 0.06], [1.0, 0.56, 0]);
+    bill.rotation.z = -Math.PI / 2;
+    eye(0.55, 0.63, 0.2);
+  } else if (shape === "sunfish") {
+    body([0.48, 0.58, 0.15]);
+    add(g, "cone", c, [0.12, 0.34, 0.06], [0, 1.08, 0]);
+    add(g, "cone", c, [0.12, 0.34, 0.06], [0, 0.06, 0]).rotation.z = Math.PI;
+    eye(0.32, 0.7, 0.14);
+  } else if (shape === "angler") {
+    body([0.58, 0.38, 0.34]);
+    tail(-0.58, 0.55);
+    const stalk = add(g, "cylinder", "#7b6d58", [0.03, 0.45, 0.03], [0.2, 0.92, 0]);
+    stalk.rotation.z = -0.3;
+    add(g, "ball", "#f7e684", [0.08, 0.08, 0.08], [0.33, 1.13, 0]);
+    eye(0.37, 0.67, 0.25);
+  } else if (shape === "ray") {
+    body([0.72, 0.12, 0.72]);
+    const t = add(g, "cylinder", c, [0.03, 0.72, 0.03], [-0.75, 0.52, 0]);
+    t.rotation.z = Math.PI / 2;
+    eye(0.25, 0.61, 0.18);
+  } else if (shape === "shark") {
+    body([0.9, 0.28, 0.24]);
+    tail(-0.9, 0.55);
+    add(g, "cone", c, [0.14, 0.38, 0.08], [-0.05, 0.88, 0]);
+    eye(0.58, 0.64, 0.2);
+  } else if (shape === "tiny") {
+    body([0.48, 0.18, 0.16]);
+    tail(-0.46, 0.55);
+    eye(0.3, 0.6, 0.14);
+  } else {
+    body();
+    const t = tail();
+    add(g, "cone", c, [0.12, 0.28, 0.06], [0, 0.82, 0]);
+    eye();
+    g.userData.tail = t;
   }
-  if (f.shape === "sword")
-    add(g, "cone", c, [0.035, 0.7, 0.035], [0.8, 0, 0]).rotation.z =
-      -Math.PI / 2;
-  if (f.shape === "flat") g.scale.y = 0.5;
-  g.userData.tail = tail;
-  g.scale.multiplyScalar(scale);
+  g.scale.setScalar(scale);
   return g;
 }
 export function dinosaurModel(d, scale = 1) {
@@ -696,48 +759,180 @@ export function dinosaurModel(d, scale = 1) {
   return g;
 }
 export function animalModel(a, scale = 1) {
-  if (a.shape === "fish") return fishModel(a, scale);
-  if (a.shape === "wing") {
-    const g = dinosaurModel({ ...a, shape: "raptor" }, scale);
-    for (const z of [-0.5, 0.5]) {
-      const w = add(g, "cone", a.color, [0.5, 0.8, 0.07], [0, 0.8, z]);
-      w.rotation.x = Math.sign(z) * 1.3;
-    }
-    return g;
-  }
   const g = new THREE.Group(),
-    c = a.color;
-  add(g, "ball", c, [0.57, 0.38, 0.32], [0, 0.55, 0]);
-  add(g, "ball", c, [0.35, 0.36, 0.32], [0.43, 0.9, 0]);
-  for (const z of [-0.24, 0.24]) {
-    add(g, "ball", c, [0.16, 0.21, 0.1], [0.4, 1.16, z]);
-    add(g, "ball", "#343d3e", [0.05, 0.065, 0.025], [0.65, 1, z]);
-  }
-  for (const x of [-0.32, 0.34])
-    for (const z of [-0.22, 0.22])
-      add(g, "cylinder", c, [0.11, 0.4, 0.11], [x, 0.24, z]);
-  add(g, "ball", "#e8d3b7", [0.2, 0.14, 0.2], [0.69, 0.79, 0]);
-  if (a.name === "ぞう" || a.name === "まんもす") {
-    add(g, "cylinder", c, [0.085, 0.55, 0.085], [0.79, 0.58, 0]);
-  }
-  if (a.name === "きりん") {
-    g.children[1].position.y += 0.45;
-    add(g, "cylinder", c, [0.18, 0.7, 0.17], [0.4, 1, 0]);
+    c = a.color || "#a9b992",
+    shape = a.shape || "quadruped";
+  const eye = (x, y, z = 0.25) => {
+    add(g, "ball", "#fffdf5", [0.065, 0.07, 0.03], [x, y, z]);
+    add(g, "ball", "#34413d", [0.03, 0.035, 0.015], [x + 0.018, y, z + 0.025]);
+  };
+  const leg = (x, z, h = 0.34, width = 0.1) =>
+    add(g, "cylinder", c, [width, h, width], [x, h / 2, z]);
+  const flipper = (x, y, z, tilt = 1.1) => {
+    const f = add(g, "cone", c, [0.16, 0.45, 0.09], [x, y, z]);
+    f.rotation.x = Math.sign(z || 1) * tilt;
+    return f;
+  };
+
+  if (["cetacean", "shark"].includes(shape)) {
+    add(g, "ball", c, [0.95, 0.3, 0.3], [0, 0.58, 0]);
+    const tail = add(g, "cone", c, [0.34, 0.5, 0.12], [-0.98, 0.58, 0]);
+    tail.rotation.z = Math.PI / 2;
+    add(g, "cone", c, [0.16, 0.34, 0.1], [-0.05, 0.92, 0]);
+    flipper(0, 0.45, 0.31);
+    if (shape === "shark")
+      add(g, "cone", c, [0.12, 0.3, 0.08], [0.8, 0.58, 0]).rotation.z = -Math.PI / 2;
+    eye(0.58, 0.65, 0.25);
+    g.userData.tail = tail;
+  } else if (shape === "pinniped") {
+    add(g, "ball", c, [0.74, 0.32, 0.36], [0, 0.48, 0]);
+    add(g, "ball", c, [0.34, 0.32, 0.32], [0.58, 0.62, 0]);
+    flipper(-0.08, 0.34, -0.36);
+    flipper(-0.08, 0.34, 0.36);
+    eye(0.73, 0.69, 0.24);
+  } else if (shape === "otter") {
+    add(g, "ball", c, [0.68, 0.3, 0.34], [0, 0.48, 0]);
+    add(g, "ball", c, [0.32, 0.31, 0.3], [0.55, 0.7, 0]);
+    const tail = add(g, "cone", c, [0.16, 0.7, 0.12], [-0.72, 0.42, 0]);
+    tail.rotation.z = 1.25;
+    eye(0.7, 0.76, 0.23);
+    g.userData.tail = tail;
+  } else if (shape === "octopus") {
+    add(g, "ball", c, [0.48, 0.55, 0.48], [0, 0.78, 0]);
+    for (let i = 0; i < 8; i++) {
+      const a0 = (i / 8) * Math.PI * 2;
+      const arm = add(g, "cylinder", c, [0.055, 0.48, 0.055], [Math.cos(a0) * 0.35, 0.3, Math.sin(a0) * 0.35]);
+      arm.rotation.z = Math.cos(a0) * 0.45;
+      arm.rotation.x = Math.sin(a0) * 0.45;
+    }
+    eye(0.2, 0.85, 0.42);
+  } else if (shape === "jellyfish") {
+    add(g, "ball", c, [0.58, 0.34, 0.58], [0, 0.85, 0]);
+    for (let i = 0; i < 6; i++)
+      add(g, "cylinder", c, [0.035, 0.55 + (i % 2) * 0.2, 0.035], [-0.35 + i * 0.14, 0.28, 0]);
+  } else if (["bird", "pterosaur"].includes(shape)) {
+    add(g, "ball", c, [0.4, 0.47, 0.33], [0, 0.75, 0]);
+    add(g, "ball", c, [0.28, 0.28, 0.27], [0.2, 1.18, 0]);
+    const beak = add(g, "cone", "#e7b85a", [0.08, 0.3, 0.08], [0.5, 1.16, 0]);
+    beak.rotation.z = -Math.PI / 2;
+    for (const z of [-0.38, 0.38]) {
+      const wing = add(g, "cone", c, [shape === "pterosaur" ? 0.38 : 0.28, 0.72, 0.08], [0, 0.82, z]);
+      wing.rotation.x = Math.sign(z) * 1.25;
+    }
+    leg(-0.08, -0.13, 0.28, 0.07);
+    leg(-0.08, 0.13, 0.28, 0.07);
+    eye(0.34, 1.23, 0.22);
+  } else if (shape === "turtle") {
+    add(g, "ball", "#6f8f63", [0.65, 0.24, 0.52], [0, 0.42, 0]);
+    add(g, "ball", c, [0.25, 0.22, 0.22], [0.65, 0.45, 0]);
+    for (const [x, z] of [[-0.35,-0.42],[-0.35,0.42],[0.35,-0.42],[0.35,0.42]])
+      add(g, "ball", c, [0.18, 0.08, 0.13], [x, 0.25, z]);
+    eye(0.78, 0.49, 0.16);
+  } else if (shape === "crocodile") {
+    add(g, "ball", c, [0.95, 0.26, 0.32], [0, 0.46, 0]);
+    add(g, "ball", c, [0.5, 0.18, 0.26], [0.78, 0.5, 0]);
+    const tail = add(g, "cone", c, [0.22, 1.0, 0.18], [-1.0, 0.45, 0]);
+    tail.rotation.z = 1.25;
+    for (const z of [-0.28, 0.28]) { leg(-0.35, z, 0.22); leg(0.35, z, 0.22); }
+    eye(0.96, 0.55, 0.22);
+    g.userData.tail = tail;
+  } else if (shape === "marine_reptile") {
+    add(g, "ball", c, [0.9, 0.3, 0.34], [0, 0.5, 0]);
+    add(g, "ball", c, [0.42, 0.24, 0.28], [0.72, 0.58, 0]);
+    const tail = add(g, "cone", c, [0.2, 0.95, 0.16], [-0.92, 0.48, 0]);
+    tail.rotation.z = 1.28;
+    for (const z of [-0.32, 0.32]) { flipper(-0.3, 0.35, z); flipper(0.32, 0.35, z); }
+    eye(0.88, 0.63, 0.22);
+    g.userData.tail = tail;
+  } else if (shape === "plesiosaur") {
+    add(g, "ball", c, [0.72, 0.3, 0.42], [0, 0.45, 0]);
+    const neck = add(g, "cylinder", c, [0.12, 0.9, 0.12], [0.55, 0.92, 0]);
+    neck.rotation.z = -0.55;
+    add(g, "ball", c, [0.25, 0.22, 0.24], [0.92, 1.25, 0]);
+    for (const z of [-0.34, 0.34]) { flipper(-0.25, 0.3, z); flipper(0.28, 0.3, z); }
+    eye(1.04, 1.3, 0.18);
+  } else if (shape === "frog") {
+    add(g, "ball", c, [0.5, 0.28, 0.42], [0, 0.38, 0]);
+    add(g, "ball", c, [0.4, 0.3, 0.38], [0.35, 0.55, 0]);
+    for (const z of [-0.3, 0.3]) add(g, "ball", c, [0.32, 0.1, 0.14], [-0.28, 0.18, z]);
+    eye(0.52, 0.72, 0.26);
+  } else if (shape === "elephant") {
+    add(g, "ball", c, [0.75, 0.52, 0.48], [0, 0.7, 0]);
+    add(g, "ball", c, [0.45, 0.45, 0.42], [0.55, 1.0, 0]);
+    add(g, "cylinder", c, [0.09, 0.65, 0.09], [0.88, 0.66, 0]).rotation.z = -0.18;
+    for (const z of [-0.28, 0.28]) { add(g, "ball", c, [0.26, 0.34, 0.08], [0.48, 1.08, z]); leg(-0.38, z, 0.48); leg(0.32, z, 0.48); }
+    eye(0.73, 1.08, 0.3);
+  } else if (shape === "giraffe") {
+    add(g, "ball", c, [0.62, 0.36, 0.34], [0, 0.78, 0]);
+    add(g, "cylinder", c, [0.16, 1.15, 0.16], [0.42, 1.35, 0]);
+    add(g, "ball", c, [0.33, 0.28, 0.28], [0.48, 2.05, 0]);
+    for (const z of [-0.25, 0.25]) { leg(-0.32, z, 0.72); leg(0.3, z, 0.72); }
+    eye(0.66, 2.1, 0.22);
+  } else if (shape === "primate") {
+    add(g, "ball", c, [0.6, 0.62, 0.42], [0, 0.82, 0]);
+    add(g, "ball", c, [0.38, 0.36, 0.34], [0.3, 1.35, 0]);
+    for (const z of [-0.42, 0.42]) add(g, "cylinder", c, [0.13, 0.72, 0.13], [0, 0.54, z]);
+    eye(0.48, 1.4, 0.25);
+  } else if (shape === "hippo") {
+    add(g, "ball", c, [0.82, 0.48, 0.52], [0, 0.62, 0]);
+    add(g, "ball", c, [0.52, 0.38, 0.42], [0.65, 0.78, 0]);
+    add(g, "ball", c, [0.36, 0.22, 0.38], [0.96, 0.68, 0]);
+    for (const z of [-0.3, 0.3]) { leg(-0.38, z, 0.35, 0.13); leg(0.32, z, 0.35, 0.13); }
+    eye(0.8, 0.92, 0.27);
+  } else if (shape === "rhino") {
+    add(g, "ball", c, [0.82, 0.45, 0.45], [0, 0.68, 0]);
+    add(g, "ball", c, [0.46, 0.34, 0.35], [0.64, 0.83, 0]);
+    const horn = add(g, "cone", "#e9dfc7", [0.09, 0.38, 0.09], [1.03, 0.93, 0]);
+    horn.rotation.z = -Math.PI / 2;
+    for (const z of [-0.27, 0.27]) { leg(-0.4, z, 0.42, 0.12); leg(0.3, z, 0.42, 0.12); }
+    eye(0.82, 0.94, 0.24);
+  } else if (["bear", "koala"].includes(shape)) {
+    const small = shape === "koala";
+    add(g, "ball", c, [small ? 0.5 : 0.65, small ? 0.45 : 0.55, 0.4], [0, 0.7, 0]);
+    add(g, "ball", c, [0.38, 0.38, 0.34], [0.42, 1.14, 0]);
+    for (const z of [-0.25, 0.25]) add(g, "ball", c, [small ? 0.17 : 0.13, small ? 0.2 : 0.14, 0.08], [0.34, 1.43, z]);
+    for (const z of [-0.25, 0.25]) { leg(-0.28, z, 0.35); leg(0.22, z, 0.35); }
+    eye(0.6, 1.2, 0.24);
+  } else if (shape === "kangaroo") {
+    add(g, "ball", c, [0.48, 0.62, 0.36], [0, 0.88, 0]);
+    add(g, "ball", c, [0.3, 0.34, 0.28], [0.38, 1.48, 0]);
+    for (const z of [-0.18, 0.18]) add(g, "cone", c, [0.1, 0.42, 0.08], [0.34, 1.85, z]);
+    leg(-0.2, -0.22, 0.65, 0.12); leg(-0.2, 0.22, 0.65, 0.12);
+    const tail = add(g, "cone", c, [0.18, 1.15, 0.13], [-0.72, 0.5, 0]); tail.rotation.z = 1.18;
+    eye(0.56, 1.54, 0.2); g.userData.tail = tail;
+  } else if (["rabbit", "squirrel"].includes(shape)) {
+    add(g, "ball", c, [0.5, 0.38, 0.34], [0, 0.58, 0]);
+    add(g, "ball", c, [0.32, 0.33, 0.3], [0.43, 0.94, 0]);
+    if (shape === "rabbit") for (const z of [-0.15, 0.15]) add(g, "cone", c, [0.09, 0.48, 0.07], [0.42, 1.35, z]);
+    else { const tail = add(g, "ball", c, [0.35, 0.6, 0.3], [-0.55, 0.92, 0]); g.userData.tail = tail; }
+    leg(-0.25, -0.2, 0.28); leg(-0.25, 0.2, 0.28); eye(0.6, 1.0, 0.22);
+  } else if (shape === "camel") {
+    add(g, "ball", c, [0.72, 0.4, 0.36], [0, 0.76, 0]);
+    add(g, "ball", c, [0.35, 0.42, 0.3], [-0.18, 1.15, 0]);
+    add(g, "cylinder", c, [0.13, 0.72, 0.13], [0.55, 1.15, 0]).rotation.z = -0.25;
+    add(g, "ball", c, [0.3, 0.27, 0.28], [0.72, 1.55, 0]);
+    for (const z of [-0.25, 0.25]) { leg(-0.35, z, 0.58); leg(0.3, z, 0.58); }
+    eye(0.88, 1.6, 0.2);
+  } else if (shape === "feline") {
+    add(g, "ball", c, [0.66, 0.38, 0.34], [0, 0.62, 0]);
+    add(g, "ball", c, [0.34, 0.34, 0.3], [0.5, 0.95, 0]);
+    for (const z of [-0.2, 0.2]) add(g, "cone", c, [0.12, 0.3, 0.08], [0.45, 1.25, z]);
+    for (const z of [-0.24, 0.24]) { leg(-0.34, z, 0.36); leg(0.3, z, 0.36); }
+    const tail = add(g, "cone", c, [0.12, 0.75, 0.09], [-0.72, 0.72, 0]); tail.rotation.z = 1.25;
+    eye(0.7, 1.0, 0.22); g.userData.tail = tail;
+  } else {
+    add(g, "ball", c, [0.62, 0.4, 0.34], [0, 0.58, 0]);
+    add(g, "ball", c, [0.36, 0.35, 0.32], [0.5, 0.9, 0]);
+    for (const z of [-0.24, 0.24]) { add(g, "ball", c, [0.14, 0.18, 0.1], [0.45, 1.15, z]); leg(-0.34, z, 0.38); leg(0.33, z, 0.38); }
+    eye(0.72, 0.98, 0.24);
   }
   g.scale.setScalar(scale);
   return g;
 }
 export function creatureModel(c, scale = 1) {
-  if (
-    typeof document !== "undefined" &&
-    (c.id.startsWith("fish_") || c.id.startsWith("dino_"))
-  )
-    return illustratedCreature(c, scale);
-  return c.id.startsWith("dino_")
-    ? dinosaurModel(c, scale)
-    : c.id.startsWith("fish_")
-      ? fishModel(c, scale)
-      : animalModel(c, scale);
+  if (c.id.startsWith("dino_")) return dinosaurModel(c, scale);
+  if (c.id.startsWith("fish_")) return fishModel(c, scale);
+  return animalModel(c, scale);
 }
 export function furniture(item) {
   const g = new THREE.Group(),

@@ -109,7 +109,7 @@ const main = fs.readFileSync(new URL("../js/main.js", import.meta.url), "utf8");
 const games = fs.readFileSync(new URL("../js/games.js", import.meta.url), "utf8");
 const rules = fs.readFileSync(new URL("../js/systems/rules.js", import.meta.url), "utf8");
 assert.equal(main.includes("いきものの つよさは かわらないよ"), false);
-assert.ok(main.includes("いきものによって とくいが ちがうよ"));
+assert.ok(main.includes("いきものの つよさ・がくしゅう・ちしき・たいぴんぐ"));
 assert.ok(main.includes('data-a="togetherfishing:${id}"'));
 assert.ok(main.includes('data-a="togetherdig:${id}"'));
 assert.ok(main.includes("this.resetSessionState();"));
@@ -119,4 +119,4 @@ assert.ok(games.includes("rules.assertArenaStartAllowed(this.s, cup);"));
 assert.ok(rules.includes("s.fishing.trip.area !== area"));
 assert.ok(rules.includes("s.dinosaurs.trip.area !== area"));
 
-console.log("PASS: Obecolle2 v1.3.2 P0-A rules and session regression verifier");
+console.log("PASS: Obecolle2 v1.4.0 P0-A compatibility verifier");
