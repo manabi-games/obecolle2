@@ -59,18 +59,26 @@ export class AudioManager {
   stopSpeech() {
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
   }
-  speak(text, lang = "en-US") {
-    if (!text || typeof speechSynthesis === "undefined" || typeof SpeechSynthesisUtterance === "undefined")
+  speak(text, lang = "en-US", options = {}) {
+    if (
+      !text ||
+      typeof speechSynthesis === "undefined" ||
+      typeof SpeechSynthesisUtterance === "undefined"
+    )
       return false;
     speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(String(text));
     utterance.lang = lang;
-    utterance.rate = 0.78;
-    utterance.pitch = 1;
+    utterance.rate = Math.max(0.55, Math.min(1.35, Number(options.rate ?? 0.78)));
+    utterance.pitch = Math.max(0.55, Math.min(1.6, Number(options.pitch ?? 1)));
     utterance.volume = Math.max(0, Math.min(1, this.sound));
-    const voices = speechSynthesis.getVoices?.() || [];
-    const voice = voices.find((v) => v.lang?.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()));
-    if (voice) utterance.voice = voice;
+    const voices = (speechSynthesis.getVoices?.() || []).filter((v) =>
+      v.lang?.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()),
+    );
+    const voiceIndex = Number(options.voiceIndex ?? 0);
+    if (voices.length)
+      utterance.voice =
+        voices[((Number.isInteger(voiceIndex) ? voiceIndex : 0) % voices.length + voices.length) % voices.length];
     speechSynthesis.speak(utterance);
     return true;
   }

@@ -160,27 +160,37 @@ export function metric(s, name, n = 1) {
 }
 export function refreshMissions(s) {
   const date = localDate();
-  if (s.missions.date === date) return;
+  const allowed = new Set(["learning", "talk", "room", "typing"]);
+  if (
+    s.missions.date === date &&
+    s.missions.daily?.length === 3 &&
+    s.missions.daily.every((m) => allowed.has(m.metric))
+  )
+    return;
   const choices = MISSIONS.filter(
-    (m) =>
-      m.rank <= s.progression.manabiRank && !["study", "talk"].includes(m.id),
+    (m) => ["room", "type"].includes(m.id) && m.rank <= s.progression.manabiRank,
   );
   const hash = [...date].reduce((v, c) => v + c.charCodeAt(0), 0);
+  const extra =
+    choices[hash % Math.max(1, choices.length)] ||
+    MISSIONS.find((m) => m.id === "room");
   s.missions = {
     date,
-    daily: [MISSIONS[0], MISSIONS[1], choices[hash % choices.length]].map(
-      (m) => ({
-        ...m,
-        start: s.progression.metrics[m.metric] || 0,
-        claimed: false,
-      }),
-    ),
+    daily: [MISSIONS[0], MISSIONS[1], extra].map((m) => ({
+      ...m,
+      start: s.progression.metrics[m.metric] || 0,
+      claimed: false,
+    })),
     completedToday: false,
   };
 }
 export function evaluate(s) {
   const notices = [];
   const p = s.progression;
+  const highestTyping = Math.max(0, ...s.typing.completedLevels);
+  if (highestTyping > 0 && highestTyping < 30)
+    s.typing.level = Math.max(s.typing.level, highestTyping + 1);
+  s.typing.level = Math.min(30, Math.max(1, s.typing.level));
   for (const sub of SUBJECTS) {
     // Version 1 records (including levels 11–20) keep their earned stars.
     // Existing level 10 clears also earn the newly moved completion keepsake.
@@ -231,7 +241,7 @@ export function evaluate(s) {
     !s.arena.unlockedTournaments.includes(s.arena.active.cup)
   )
     s.arena.unlockedTournaments.push(s.arena.active.cup);
-  for (const friend of FRIENDS) {
+  for (const friend of FRIENDS.slice(0, 10)) {
     if (s.friends[friend.id]) continue;
     const ok =
       friend.route === "typing"
@@ -297,7 +307,7 @@ export function evaluate(s) {
     }
   if (s.dinosaurs.completedCount === 30)
     s.inventory.specialItems.dinosaur_master = 1;
-  if (s.typing.completedLevels.includes(20))
+  if (s.typing.completedLevels.includes(30))
     s.inventory.specialItems.typing_master = 1;
   for (const [key, id] of [
     ["fish_master", "reward_fish"],
@@ -330,17 +340,16 @@ export function evaluate(s) {
   return notices;
 }
 export function masterRequirements(s) {
+  const activeFriendCount = FRIENDS.slice(0, 10).filter((f) => !!s.friends[f.id]).length;
   return [
     ["まなびらんく10", s.progression.manabiRank >= 10],
-    ["ともだち30にん", count(s.friends) === 30],
-    ["さかな60しゅるい", count(s.fishing.fishBook) === 60],
-    ["きょうりゅう30しゅるいふくげん", s.dinosaurs.completedCount === 30],
+    ["ともだち10にん", activeFriendCount === 10],
+    ["きょうりゅう30しゅるい はっけん", s.dinosaurs.completedCount === 30],
     [
       "ぜんぶの がくしゅうを くりあ",
       SUBJECTS.every((x) => s.learning[x.id].levels[x.maxLevel]?.stars > 0),
     ],
-    ["たいぴんぐLv20", s.typing.completedLevels.includes(20)],
-    ["ますたーはいゆうしょう", s.arena.clearedTournaments.includes("cup_5")],
+    ["たいぴんぐはっくつ Lv30", s.typing.completedLevels.includes(30)],
   ];
 }
 export const masterReady = (s) => masterRequirements(s).every((x) => x[1]);
@@ -396,12 +405,34 @@ export function finishTyping(s, mode, level, result) {
     bestScore: Math.max(old, result.score),
     plays: (t.modes[mode]?.plays || 0) + 1,
   };
-  if (mode === "basic" && result.words >= 5 && result.accuracy >= 60) {
+
+  let dinosaur = null,
+    isNewDinosaur = false;
+  const clearedBasic =
+    mode === "basic" && result.words >= 5 && result.accuracy >= 60;
+  if (clearedBasic) {
     if (!t.completedLevels.includes(level)) t.completedLevels.push(level);
-    t.level = Math.max(t.level, Math.min(20, level + 1));
+    t.level = Math.max(t.level, Math.min(30, level + 1));
+    dinosaur = DINOS[Math.max(0, Math.min(DINOS.length - 1, level - 1))] || null;
+    if (dinosaur) {
+      const book = (s.dinosaurs.fossilBook[dinosaur.id] ??= {
+        parts: [],
+        completed: false,
+      });
+      if (!book.completed) {
+        book.parts = [...dinosaur.parts];
+        book.completed = true;
+        book.completedAt = new Date().toISOString();
+        s.dinosaurs.completedCount++;
+        s.inventory.specialItems["figure_" + dinosaur.id] = 1;
+        remember(s, "dinosaur", dinosaur.name + " はっけん！", dinosaur.id);
+        metric(s, "dig");
+        isNewDinosaur = true;
+      }
+    }
   }
   metric(s, "typing");
-  return { power, isBest };
+  return { power, isBest, dinosaur, isNewDinosaur };
 }
 export function weighted(rows, weight, rng = Math.random) {
   let total = rows.reduce((s, x) => s + Math.max(0, weight(x)), 0);
@@ -569,14 +600,14 @@ export function friendMilestone(s, id) {
 export function requestFriend(s, id) {
   const f = s.friends[id];
   if (!f) throw Error("その ともだちは まだ しまに いないよ");
+  if (f.request && !["learning", "typing"].includes(f.request.metric))
+    f.request = null;
   if (f.request) return f.request;
-  if (Object.values(s.friends).filter((x) => x.request).length >= 4)
-    throw Error("まずいまのおねがいをかなえてあげよう");
+  if (Object.values(s.friends).filter((x) => x.request).length >= 3)
+    throw Error("まず いまの おねがいを かなえてあげよう");
   const choices = [
       "learning",
       ...(s.progression.manabiRank >= 2 ? ["typing"] : []),
-      ...(s.progression.manabiRank >= 4 ? ["fish"] : []),
-      ...(s.progression.manabiRank >= 6 ? ["dig"] : []),
     ],
     m = choices[Math.floor(Math.random() * choices.length)];
   f.request = {

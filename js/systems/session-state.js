@@ -16,13 +16,14 @@ export function resetTransientState(target) {
   target.giftPage = 0;
   target.wardrobeCategory = "clothing";
   target.wardrobePage = 0;
-  target.displayCategory = "fish";
+  target.displayCategory = "dinosaurs";
   target.displayPage = 0;
   target.deferredToast = null;
   target.toastShownAt = 0;
   target.walkPath = [];
   target.walkDestination = null;
   target.nearDoor = null;
+  target.nearFriend = null;
   target.activity = null;
   target.modalOpen = false;
   target.page = 0;

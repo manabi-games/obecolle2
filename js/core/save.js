@@ -108,9 +108,9 @@ export function validateSaveData(s) {
       (!Number.isFinite(val) || val < 0 || val > 1e9)
     )
       errors.push("typing " + key);
-  if (!integer(s.typing.level, 20) || s.typing.level < 1)
+  if (!integer(s.typing.level, 30) || s.typing.level < 1)
     errors.push("typing level");
-  if (s.typing.completedLevels.some((x) => !integer(x, 20) || x < 1))
+  if (s.typing.completedLevels.some((x) => !integer(x, 30) || x < 1))
     errors.push("typing completedLevels");
   refs(Object.keys(s.friends), FRIENDS, "friends");
   for (const f of Object.values(s.friends)) {

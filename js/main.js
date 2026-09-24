@@ -138,6 +138,7 @@ class Game {
     this.walkPath = [];
     this.walkDestination = null;
     this.nearDoor = null;
+    this.nearFriend = null;
     this.activity = null;
     this.modalOpen = false;
     this.dialog.innerHTML = "";
@@ -154,8 +155,29 @@ class Game {
       this.hud.innerHTML = "";
       return;
     }
-    const p = this.s.progression;
-    this.hud.innerHTML = `<div class="profile">${E(this.s.player.name)}<small>まなびらんく ${p.manabiRank} ／ ともだち ${Object.keys(this.s.friends).length}にん</small></div><div class="wallet"><span>◉ ${p.coins}</span><span>★ ${p.stars}</span><span>ちけっと ${p.tickets}</span></div><div class="hud-actions"><button class="home-action" data-a="quickhome">🏝 しま</button><button data-a="collection">これくしょん</button><button data-a="missions">きょうのやること</button><button data-a="pause">☰</button></div>`;
+    const p = this.s.progression,
+      activeFriends = D.ACTIVE_FRIENDS.filter((f) => !!this.s.friends[f.id]).length;
+    this.hud.innerHTML = `<div class="profile">${E(this.s.player.name)}<small>まなびらんく ${p.manabiRank} ／ ともだち ${activeFriends} / 10</small></div><div class="wallet"><span>◉ ${p.coins}</span><span>★ ${p.stars}</span></div><div class="hud-actions"><button data-a="room">🏠 おへや</button><button data-a="collection">📖 ずかん</button><button data-a="pause">☰</button></div>`;
+  }
+  featuredShopItem(item) {
+    if (item?.rewardOnly) return true;
+    const id = String(item?.id || ""),
+      n = Number(id.split("_")[1]);
+    if (item?.type === "furniture") return Number.isInteger(n) && n < 10;
+    if (item?.type === "clothing")
+      return Number.isInteger(n) && n % 8 === 0 && n <= 32;
+    if (id.startsWith("hat_")) return Number.isInteger(n) && n % 4 === 0;
+    if (id.startsWith("glasses_")) return n === 0 || n === 5;
+    if (item?.type === "wallpaper" || item?.type === "floor")
+      return Number.isInteger(n) && n < 4;
+    return true;
+  }
+  friendVoiceProfile(id) {
+    return D.ACTIVE_FRIENDS.find((f) => f.id === id)?.voice || {
+      rate: 0.86,
+      pitch: 1,
+      voiceIndex: 0,
+    };
   }
   async commit() {
     const start = this.s.memories.length,
@@ -197,7 +219,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.4.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.5.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -211,7 +233,7 @@ class Game {
       }),
     );
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>きみの ぼうけんを えらぼう</h2><p>つづきからでも、あたらしくでも だいじょうぶ。</p></div><button data-a="title">たいとるへ</button></div><div class="grid three slot-grid">${slots.map((x) => `<div class="tile slot-card"><h3>せーぶ ${x.id}</h3>${x.data ? `${appearancePortrait(x.data.player.appearance, null, false, x.data.player.name)}<p>${E(x.data.player.name)}</p><small>らんく${x.data.progression.manabiRank} ／ ともだち${Object.keys(x.data.friends).length}にん</small><small>${E(x.data.meta.updatedAt.slice(0, 10))}${x.recovered ? " ／ まえの せーぶから もどしたよ" : ""}</small><button class="primary" data-a="load:${x.id}">つづきから</button>` : x.error ? `<div class="slot-error">！</div><p>せーぶを よめません</p><small>${E(x.error)}</small>` : `<div class="slot-new">＋</div><p>あたらしい おはなし</p><button class="primary" data-a="new:${x.id}">はじめる</button>`}<button class="muted-button" data-a="importslot:${x.id}">ばっくあっぷから もどす</button></div>`).join("")}</div><p class="adult-note">おとなのひとへ：ばっくあっぷは JSONふぁいるを つかいます。</p>`,
+      `<div class="row spread panel-heading"><div><h2>きみの ぼうけんを えらぼう</h2><p>つづきからでも、あたらしくでも だいじょうぶ。</p></div><button data-a="title">たいとるへ</button></div><div class="grid three slot-grid">${slots.map((x) => `<div class="tile slot-card"><h3>せーぶ ${x.id}</h3>${x.data ? `${appearancePortrait(x.data.player.appearance, null, false, x.data.player.name)}<p>${E(x.data.player.name)}</p><small>らんく${x.data.progression.manabiRank} ／ ともだち${D.ACTIVE_FRIENDS.filter((f) => !!x.data.friends[f.id]).length}にん</small><small>${E(x.data.meta.updatedAt.slice(0, 10))}${x.recovered ? " ／ まえの せーぶから もどしたよ" : ""}</small><button class="primary" data-a="load:${x.id}">つづきから</button>` : x.error ? `<div class="slot-error">！</div><p>せーぶを よめません</p><small>${E(x.error)}</small>` : `<div class="slot-new">＋</div><p>あたらしい おはなし</p><button class="primary" data-a="new:${x.id}">はじめる</button>`}<button class="muted-button" data-a="importslot:${x.id}">ばっくあっぷから もどす</button></div>`).join("")}</div><p class="adult-note">おとなのひとへ：ばっくあっぷは JSONふぁいるを つかいます。</p>`,
       "wide child-grid-panel slots-panel",
     );
   }
@@ -312,20 +334,23 @@ class Game {
   island() {
     this.companion = null;
     this.setScene("island");
-    this.screen.innerHTML = `<div class="next-goal"><strong>つぎの おたのしみ</strong>${E(this.nextGoal())}</div><div class="scene-bar walk-bar"><span>↑ ↓ ← → ／ W A S D で あるこう<br><small>たてものを おすと、そこまで あるくよ</small></span><button class="primary" id="walk-enter" data-a="walkenter" disabled>いりぐちへ あるこう</button><button data-a="overview">${this.walkOverview ? "じぶんを みる" : "しまを みわたす"}</button><button data-a="fullscreen">⛶</button></div>`;
+    this.screen.innerHTML = `<div class="scene-bar walk-bar">
+      <span class="walk-guide"><strong>まちを あるこう</strong><small>↑ ↓ ← → ／ W A S D　ちかづくと おはなし・はいる ができるよ</small></span>
+      <button class="primary" id="walk-talk" data-a="walktalk" disabled>ともだちと はなす</button>
+      <button id="walk-enter" data-a="walkenter" disabled>はいる</button>
+    </div>`;
     this.syncInteractionState();
     if (this.noticeQueue.length) {
-      const m = this.noticeQueue.shift();
+      const m = this.noticeQueue.shift(),
+        friend = D.ACTIVE_FRIENDS.find((f) => f.id === m.subjectId);
+      if (!friend) return;
       this.world.set("arrival", this.s, { friend: m.subjectId });
       this.syncInteractionState();
       this.world.hero?.setState("happy");
       this.say(
-        "あたらしい ともだち",
-        m.title + "\nふねでやってきたよ。まんしょんであってみよう！",
-        [
-          ["あいにいく", "resident:" + m.subjectId],
-          ["つづける", "closedialog"],
-        ],
+        friend.name,
+        `はじめまして！ ${friend.name}だよ。\nこれから まちで いっぱい おはなししようね！`,
+        [["よろしく！", "closedialog"]],
       );
     }
   }
@@ -376,7 +401,6 @@ class Game {
       this.walkPath = [];
       this.walkDestination = null;
     }
-    // Camera is isometric: screen-right and screen-up map to ground-plane axes.
     const ox = x;
     x = x * 0.857 + z * 0.514;
     z = z * 0.857 - ox * 0.514;
@@ -399,27 +423,41 @@ class Game {
       hero.rotation.y = Math.atan2(x, z);
       hero.setState("walk");
     } else hero.setState("idle");
+
     const camera = this.world.camera,
-      blend = Math.min(1, dt * 4);
-    const tx = this.walkOverview ? 0 : p.x,
-      tz = this.walkOverview ? 0 : p.z;
-    camera.position.x +=
-      ((this.walkOverview ? 21 : 11) + tx - camera.position.x) * blend;
-    camera.position.y +=
-      ((this.walkOverview ? 26 : 14) - camera.position.y) * blend;
-    camera.position.z +=
-      ((this.walkOverview ? 35 : 18) + tz - camera.position.z) * blend;
-    this.world.target.x += (tx - this.world.target.x) * blend;
-    this.world.target.z += (tz - this.world.target.z) * blend;
+      blend = Math.min(1, dt * 5.5);
+    camera.position.x += (p.x + 6.8 - camera.position.x) * blend;
+    camera.position.y += (8.8 - camera.position.y) * blend;
+    camera.position.z += (p.z + 11.5 - camera.position.z) * blend;
+    this.world.target.x += (p.x - this.world.target.x) * blend;
+    this.world.target.y += (1.1 - this.world.target.y) * blend;
+    this.world.target.z += (p.z - this.world.target.z) * blend;
     camera.lookAt(this.world.target);
-    this.nearDoor = doors.find((f) => Math.hypot(f.x - p.x, f.z - p.z) < 1.45);
-    const button = document.querySelector("#walk-enter");
-    if (button) {
-      button.disabled = !this.nearDoor;
-      const label = this.nearDoor
-        ? `${this.nearDoor.name}へ（Enter）`
-        : "いりぐちへ あるこう";
-      if (button.textContent !== label) button.textContent = label;
+
+    this.nearDoor = doors.find(
+      (f) => Math.hypot(f.x - p.x, f.z - p.z) < 1.45,
+    );
+    const nearbyFriend = this.world.targets.find(
+      (t) =>
+        String(t.userData.action || "").startsWith("friend:") &&
+        t !== hero &&
+        Math.hypot(t.position.x - p.x, t.position.z - p.z) < 2.6,
+    );
+    this.nearFriend = nearbyFriend?.userData.action || null;
+
+    const talkButton = document.querySelector("#walk-talk");
+    if (talkButton) {
+      talkButton.disabled = !this.nearFriend;
+      const id = this.nearFriend?.split(":")[1],
+        friend = D.ACTIVE_FRIENDS.find((f) => f.id === id);
+      talkButton.textContent = friend ? `${friend.name}と はなす` : "ともだちと はなす";
+    }
+    const enterButton = document.querySelector("#walk-enter");
+    if (enterButton) {
+      enterButton.disabled = !this.nearDoor;
+      enterButton.textContent = this.nearDoor
+        ? `${this.nearDoor.name}へ はいる`
+        : "はいる";
     }
     if (this.walkDestination && !this.walkPath.length) {
       const dest = this.walkDestination;
@@ -428,36 +466,17 @@ class Game {
     }
   }
   nextGoal() {
-    const p = this.s.progression,
-      friends = Object.keys(this.s.friends).length;
-    if (!p.stars && friends <= 1)
-      return "まずは まんしょんの じぶんのへやを みてみよう。つぎは がっこうへ！";
-    const nextFriend = D.FRIENDS.find(
-      (f) => f.route === "typing" && !this.s.friends[f.id],
-    );
-    if (
-      nextFriend &&
-      p.unlockedFacilities.includes("typing") &&
-      this.s.typing.buddyPower < nextFriend.threshold
-    )
-      return `たいぴんぐで あと ${nextFriend.threshold - this.s.typing.buddyPower} なかまぱわー。あたらしい ともだちに ちかづくよ！`;
-    if (!p.unlockedFacilities.includes("fishing"))
-      return `がっこうで あと ${Math.max(0, D.RANKS[3] - p.stars)}すたーで つりみなとが ひらくよ！`;
-    if (!p.unlockedFacilities.includes("excavation"))
-      return `がっこうで あと ${Math.max(0, D.RANKS[5] - p.stars)}すたーで はっくつしまが ひらくよ！`;
-    if (!p.unlockedFacilities.includes("arena"))
-      return `がっこうで あと ${Math.max(0, D.RANKS[7] - p.stars)}すたーで さいきょうありーなが ひらくよ！`;
-    const rank = p.manabiRank;
-    if (rank < 10)
-      return `がっこうで あと ${Math.max(0, D.RANKS[rank] - p.stars)}すたー。らんく${rank + 1}へ！`;
-    return p.storyFlags.master
-      ? "すきな がくしゅう・これくしょん・ともだちとの あそびを つづけよう！"
-      : "まんなかひろばで しまの かんせいまでに やることを みよう。";
+    const friends = D.ACTIVE_FRIENDS.filter((f) => !!this.s.friends[f.id]).length;
+    if (this.s.dinosaurs.completedCount < 30)
+      return `たいぴんぐはっくつで きょうりゅう ${this.s.dinosaurs.completedCount} / 30。つぎの かせきを みつけよう！`;
+    if (friends < 10)
+      return "まちには まだ あっていない ともだちが いるよ。たいぴんぐや がくしゅうを つづけよう！";
+    return "まちを あるいて、ともだちと おはなししよう！";
   }
   mansion() {
     this.setScene("mansion");
     this.screen.innerHTML =
-      '<div class="scene-bar"><button data-a="island">しまへ</button><button class="primary" data-a="room">じぶんのへや</button></div>';
+      '<div class="scene-bar"><button data-a="island">まちへ</button><button class="primary" data-a="room">じぶんのへや</button></div>';
     this.syncInteractionState();
   }
   room(friend = null) {
@@ -487,8 +506,23 @@ class Game {
       .map(([label, a]) => `<button data-a="${a}">${E(label)}</button>`)
       .join("")}</div></div>`;
     this.syncInteractionState();
+
+    const friend = D.ACTIVE_FRIENDS.find((f) => f.name === name);
+    if (friend) {
+      const spoken = String(text)
+        .replace(/[♥♡★☆✓✨]/g, "")
+        .replace(/\n+/g, "。")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (spoken)
+        setTimeout(
+          () => this.audio.speak(spoken, "ja-JP", this.friendVoiceProfile(friend.id)),
+          40,
+        );
+    }
   }
   closeDialog() {
+    this.audio.stopSpeech?.();
     const deferred = this.deferredToast;
     this.deferredToast = null;
     this.dialog.innerHTML = "";
@@ -503,20 +537,22 @@ class Game {
     if (deferred) this.toast(deferred);
   }
   async friend(id) {
-    if (!this.s.friends[id]) return;
+    const data = D.ACTIVE_FRIENDS.find((f) => f.id === id);
+    if (!data || !this.s.friends[id]) return;
     R.talk(this.s, id);
     await this.commit();
     this.roomFriend = id;
     this.world.hero?.setState("wave");
-    const data = D.FRIENDS.find((f) => f.id === id),
-      f = this.s.friends[id];
+    const f = this.s.friends[id],
+      lines = data.lines?.length ? data.lines : ["こんにちは！"],
+      line = lines[(f.affinity + this.s.meta.playCount) % lines.length];
     this.say(
       data.name,
-      `${this.hearts(f.affinity)}\n${["きょうは なにをして あそぼう？", "あたらしいことをしると、わくわくするね。", "ゆっくり、たのしく やっていこう。", "きょうのきろくに ちょうせんだ！", "がっこうにも いってみようかな。", "きみがくると しまがたのしい！"][D.FRIENDS.indexOf(data) % 6]}${f.affinity >= 40 ? "\nすきなもの：" + data.favoriteActivity + "・" + data.favoriteFood : ""}`,
+      `${line}${f.affinity >= 40 ? "\n" + data.favoriteActivity + "が すきなんだ。" : ""}`,
       [
-        ["おねがい", "request:" + id],
-        ["ぷれぜんと", "gift:" + id],
-        ["いっしょにあそぶ", "together:" + id],
+        ["おねがい ある？", "request:" + id],
+        ["たいぴんぐはっくつへ", "typing"],
+        ["またね", "closedialog"],
       ],
     );
   }
@@ -561,6 +597,7 @@ class Game {
     const items = D.ITEMS.filter(
         (i) =>
           i.type === "furniture" &&
+          this.featuredShopItem(i) &&
           R.availableFurnitureCount(this.s, i.id) > 0,
       ),
       pages = Math.max(1, Math.ceil(items.length / 8));
@@ -639,7 +676,7 @@ class Game {
   school() {
     this.setScene("school");
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>まなびがっこう</h2><p>すきな がくしゅうを えらぼう。1かい 5もんだよ。</p></div><button data-a="island">しまへ</button></div><div class="grid school-grid">${D.SUBJECTS.map((x) => {
+      `<div class="row spread panel-heading"><div><h2>まなびがっこう</h2><p>すきな がくしゅうを えらぼう。1かい 5もんだよ。</p></div><button data-a="island">まちへ</button></div><div class="grid school-grid">${D.SUBJECTS.map((x) => {
         const learned = Object.values(this.s.learning[x.id].levels).reduce(
           (sum, row) => sum + (row.stars || 0),
           0,
@@ -666,23 +703,34 @@ class Game {
       "wide child-grid-panel levels-panel",
     );
   }
-  typingLab(page = this.typingPage || 0) {
+  typingLab(page = null) {
     this.setScene("typing");
     const t = this.s.typing,
-      nextMode = D.TYPING_MODES.find((m) => m.level > t.level),
-      masterCleared = t.completedLevels.includes(20),
-      pages = Math.max(1, Math.ceil(t.level / 5));
+      maxLevel = 30,
+      unlocked = Math.max(1, Math.min(maxLevel, t.level)),
+      pageSize = 6,
+      pages = Math.ceil(maxLevel / pageSize);
+    if (page === null || page === undefined)
+      page = Math.floor((unlocked - 1) / pageSize);
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.typingPage = page;
     const levels = Array.from(
-      { length: Math.min(5, t.level - page * 5) },
-      (_, i) => page * 5 + i + 1,
+      { length: Math.min(pageSize, maxLevel - page * pageSize) },
+      (_, i) => page * pageSize + i + 1,
     );
+    const masterCleared = t.completedLevels.includes(30);
     this.panel(
-      `<div class="row spread panel-heading"><h2>たいぴんぐけんきゅうじょ</h2><button data-a="island">しまへ</button></div><div class="row spread"><span class="pill">きほん Lv ${t.level}</span><span class="pill">なかまぱわー ${t.buddyPower}</span></div><div class="typing-goal"><strong>${masterCleared ? "きほん Lv20まで くりあ！" : `つぎは「きほん Lv ${t.level}」を くりあしよう`}</strong><small>${masterCleared ? "すきな Lvや あそびを もういちど たのしめるよ！" : nextMode ? `${nextMode.name}は きほんLv${nextMode.level - 1}を くりあすると ひらくよ！` : "ぜんぶの あそびが ひらいているよ！"}</small><button class="primary" data-a="typelevel:basic:${t.level}">${masterCleared ? "Lv20を もういちど" : `きほん Lv ${t.level}を はじめる`}</button></div><h3>きほんの Lv</h3><div class="typing-levels">${levels.map((lv) => `<button data-a="typelevel:basic:${lv}"><strong>Lv ${lv}</strong><small>${t.completedLevels.includes(lv) ? "✓ くりあ" : lv === t.level ? "いま ここ！" : "もういちど"}</small></button>`).join("")}</div>${this.pagination(page, pages, "typingpage")}<h3>あそびたい もーど</h3><div class="grid typing-mode-grid">${D.TYPING_MODES.filter((m) => m.id !== "basic").map((m) => {
-        const open = t.level >= m.level;
-        return `<button class="tile" data-a="typelevel:${m.id}:${Math.max(1, Math.min(t.level, 20))}" ${open ? "" : "disabled"}><span class="icon">${m.id === "challenge" ? "⚡" : m.id === "rescue" ? "🐟" : m.id === "escape" ? "🏃" : "🏆"}</span><strong>${m.name}</strong><small>${open ? "ひらいてる！" : `きほんLv${m.level - 1}を くりあで ひらく`}</small></button>`;
-      }).join("")}</div>`,
+      `<div class="row spread panel-heading"><div><h2>⛏️ たいぴんぐはっくつじょ</h2><p>ことばを うって いわを くだこう。1Lvにつき きょうりゅう1しゅるい！</p></div><button data-a="island">まちへ</button></div>
+      <div class="row spread"><span class="pill">はっくつ Lv ${unlocked} / 30</span><span class="pill">🦖 ${this.s.dinosaurs.completedCount} / 30</span></div>
+      <div class="typing-goal"><strong>${masterCleared ? "30しゅるい はっけん！" : `つぎは Lv ${unlocked} の ちそう`}</strong><small>${masterCleared ? "すきな ちそうを もういちど ほれるよ。" : "まだ なにが ねむっているかは ひみつ。いわを くだいて たしかめよう！"}</small><button class="primary" data-a="typelevel:basic:${unlocked}">${masterCleared ? "Lv30を もういちど" : `Lv ${unlocked}を はっくつ！`}</button></div>
+      <div class="typing-levels dig-levels">${levels.map((lv) => {
+        const dino = D.DINOS[lv - 1],
+          found = !!this.s.dinosaurs.fossilBook[dino?.id]?.completed,
+          locked = lv > unlocked;
+        return `<button data-a="typelevel:basic:${lv}" ${locked ? "disabled" : ""}><strong>Lv ${lv}</strong><small>${found ? "🦖 " + E(dino.name) : locked ? "🔒 まだ いけない" : "？？？ ねむっている"}</small><small>${t.completedLevels.includes(lv) ? "✓ はっくつずみ" : lv === unlocked ? "いま ここ！" : "もういちど"}</small></button>`;
+      }).join("")}</div>
+      ${this.pagination(page, pages, "typingpage")}
+      <div class="row collection-footer"><button data-a="book:dinosaurs">🦖 きょうりゅうずかん</button></div>`,
       "wide child-grid-panel typing-lab-panel",
     );
   }
@@ -692,7 +740,7 @@ class Game {
       areas = D.FISH_AREAS.filter((a) => this.s.fishing.unlockedAreas.includes(a.id)),
       rods = D.RODS.filter((r) => this.s.fishing.ownedRods.includes(r.id));
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>つりみなと</h2><p>${active ? `いまは ${D.FISH_AREAS.find((a) => a.id === active.area)?.name}で のこり${active.remaining}かい` : "つりばと つりざおを えらぼう。"}</p></div><button data-a="island">しまへ</button></div><div class="rod-picker"><strong>つりざお</strong>${rods.map((r) => `<button class="${r.id === this.s.fishing.equippedRod ? "selected" : ""}" data-a="equiprod:${r.id}:${friend || ""}">${itemPreview(r)}<span>${E(r.name)}</span></button>`).join("")}</div><div class="grid fishing-area-grid">${areas.map((a) => {
+      `<div class="row spread panel-heading"><div><h2>つりみなと</h2><p>${active ? `いまは ${D.FISH_AREAS.find((a) => a.id === active.area)?.name}で のこり${active.remaining}かい` : "つりばと つりざおを えらぼう。"}</p></div><button data-a="island">まちへ</button></div><div class="rod-picker"><strong>つりざお</strong>${rods.map((r) => `<button class="${r.id === this.s.fishing.equippedRod ? "selected" : ""}" data-a="equiprod:${r.id}:${friend || ""}">${itemPreview(r)}<span>${E(r.name)}</span></button>`).join("")}</div><div class="grid fishing-area-grid">${areas.map((a) => {
         const blocked = active && active.area !== a.id;
         return `<button class="tile" data-a="fishstart:${a.id}:${friend || ""}" ${blocked ? "disabled" : ""}><span class="icon">🎣</span><strong>${a.name}</strong><small>${active?.area === a.id ? `つづきから ／ のこり${active.remaining}かい` : blocked ? "いまの つりを おわらせよう" : `らんく${a.rank}${a.species ? "・さかな" + a.species + "しゅるい" : ""}`}</small></button>`;
       }).join("")}</div><div class="row"><button data-a="book:fish">さかなずかん</button><button data-a="display:fish">おへやの すいそう</button></div>`,
@@ -704,7 +752,7 @@ class Game {
     const active = this.s.dinosaurs.trip,
       areas = D.DIG_AREAS.filter((a) => this.s.dinosaurs.unlockedAreas.includes(a.id));
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>はっくつしま</h2><p>${active ? `いまは ${D.DIG_AREAS.find((a) => a.id === active.area)?.name}で のこり${active.remaining}かい` : "ほる ばしょを えらぼう。"}</p></div><button data-a="island">しまへ</button></div><div class="grid excavation-area-grid">${areas.map((a) => {
+      `<div class="row spread panel-heading"><div><h2>はっくつしま</h2><p>${active ? `いまは ${D.DIG_AREAS.find((a) => a.id === active.area)?.name}で のこり${active.remaining}かい` : "ほる ばしょを えらぼう。"}</p></div><button data-a="island">まちへ</button></div><div class="grid excavation-area-grid">${areas.map((a) => {
         const blocked = active && active.area !== a.id;
         return `<button class="tile" data-a="digstart:${a.id}:${friend || ""}" ${blocked ? "disabled" : ""}><span class="icon">⛏️</span><strong>${a.name}</strong><small>${active?.area === a.id ? `つづきから ／ のこり${active.remaining}かい` : blocked ? "いまの はっくつを おわらせよう" : `らんく${a.rank}${a.completed ? "・ふくげん" + a.completed + "しゅるい" : ""}`}</small></button>`;
       }).join("")}</div><p class="muted">どこを えらんでも だいじょうぶ。はんまーと ぶらしで みつけよう！</p><div class="row"><button data-a="book:dinosaurs">きょうりゅうずかん</button></div>`,
@@ -725,7 +773,7 @@ class Game {
     const active = this.s.arena.active,
       activeCup = active && D.TOURNAMENTS.find((c) => c.id === active.cup);
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>さいきょうありーな</h2><p>いきものの つよさ・がくしゅう・ちしき・たいぴんぐ。4つの ちからで しょうぶ！</p></div><button data-a="island">しまへ</button></div>${active ? `<p>いまのたいかいを おわらせてから、つぎのたいかいをえらべるよ。</p><p><button class="primary" data-a="arenacontinue">${activeCup.name} ${active.wins + 1}しあいめを つづける</button></p>` : ""}<div class="grid three arena-cup-grid">${D.TOURNAMENTS.map((c) => {
+      `<div class="row spread panel-heading"><div><h2>さいきょうありーな</h2><p>いきものの つよさ・がくしゅう・ちしき・たいぴんぐ。4つの ちからで しょうぶ！</p></div><button data-a="island">まちへ</button></div>${active ? `<p>いまのたいかいを おわらせてから、つぎのたいかいをえらべるよ。</p><p><button class="primary" data-a="arenacontinue">${activeCup.name} ${active.wins + 1}しあいめを つづける</button></p>` : ""}<div class="grid three arena-cup-grid">${D.TOURNAMENTS.map((c) => {
         const requirement =
           c.id === "cup_2"
             ? "・きょうりゅう10しゅるい"
@@ -766,39 +814,37 @@ class Game {
     );
   }
   shop(category = "clothing", page = 0) {
-    const allowed = ["clothing", "furniture", "accessories", "interior", "rods"];
+    const allowed = ["clothing", "furniture", "accessories", "interior"];
     if (!allowed.includes(category)) category = "clothing";
     this.setScene("shop");
-    const rows =
-        category === "rods"
-          ? D.RODS
-          : D.ITEMS.filter((i) => !i.rewardOnly).filter((i) =>
-              category === "accessories"
-                ? i.type === "accessories"
-                : category === "interior"
-                  ? ["wallpaper", "floor"].includes(i.type)
-                  : i.type === category,
-            ),
+    const rows = D.ITEMS.filter((i) => !i.rewardOnly)
+      .filter((i) =>
+        category === "accessories"
+          ? i.type === "accessories"
+          : category === "interior"
+            ? ["wallpaper", "floor"].includes(i.type)
+            : i.type === category,
+      )
+      .filter((i) => this.featuredShopItem(i)),
       pages = Math.max(1, Math.ceil(rows.length / 8)),
       owned = (i) =>
-        i.id.startsWith("rod_")
-          ? this.s.fishing.ownedRods.includes(i.id)
-          : i.type === "furniture"
-            ? false
-            : ["wallpaper", "floor"].includes(i.type)
-              ? !!this.s.inventory.specialItems[i.id]
-              : !!this.s.inventory[i.type]?.[i.id];
+        i.type === "furniture"
+          ? false
+          : ["wallpaper", "floor"].includes(i.type)
+            ? !!this.s.inventory.specialItems[i.id]
+            : !!this.s.inventory[i.type]?.[i.id];
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.shopCategory = category;
     this.shopPage = page;
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>しょっぷすとりーと</h2><p>ほしいものを えらんでね。</p></div><span class="panel-balance">◉ ${this.s.progression.coins} こいん</span><button data-a="island">しまへ</button></div><div class="tabs">${[
+      `<div class="row spread panel-heading"><div><h2>しょっぷ</h2><p>おなじ みための いろちがいは へらして、えらびやすくしたよ。</p></div><span class="panel-balance">◉ ${this.s.progression.coins}</span><button data-a="island">まちへ</button></div>
+      <div class="tabs">${[
         ["clothing", "ふく"],
         ["furniture", "かぐ"],
         ["accessories", "ぼうし・めがね"],
         ["interior", "かべ・ゆか"],
-        ["rods", "つりざお"],
-      ].map(([id, n]) => `<button class="${id === category ? "active" : ""}" data-a="shopcat:${id}">${n}</button>`).join("")}</div><div class="grid shop-grid">${rows.slice(page * 8, page * 8 + 8).map((i) => {
+      ].map(([id, n]) => `<button class="${id === category ? "active" : ""}" data-a="shopcat:${id}">${n}</button>`).join("")}</div>
+      <div class="grid shop-grid">${rows.slice(page * 8, page * 8 + 8).map((i) => {
         const requirement = D.itemRequirement(i.id, this.s),
           hasIt = owned(i),
           locked =
@@ -806,7 +852,7 @@ class Game {
             !!requirement ||
             this.s.progression.coins < i.price ||
             hasIt;
-        return `<div class="tile shop-tile"><div class="shop-preview">${itemPreview(i)}</div><span class="name">${E(i.name)}</span><small>${i.price} こいん ／ らんく${i.rank}${requirement ? "<br>" + requirement : ""}</small><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
+        return `<div class="tile shop-tile"><div class="shop-preview">${itemPreview(i)}</div><span class="name">${E(i.name)}</span><small>${i.price} こいん</small><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
       }).join("")}</div>${this.pagination(page, pages, "shoppage")}`,
       "wide child-grid-panel shop-panel",
     );
@@ -817,7 +863,10 @@ class Game {
   decorate() {
     this.roomFriend = null;
     const items = D.ITEMS.filter(
-      (i) => i.type === "furniture" && R.availableFurnitureCount(this.s, i.id) > 0,
+      (i) =>
+        i.type === "furniture" &&
+        this.featuredShopItem(i) &&
+        R.availableFurnitureCount(this.s, i.id) > 0,
     );
     if (!this.decorateItem || !items.some((i) => i.id === this.decorateItem))
       this.decorateItem = items[0]?.id || null;
@@ -867,7 +916,7 @@ class Game {
           return ["wallpaper", "floor"].includes(i.type) &&
             !!this.s.inventory.specialItems[i.id];
         if (i.type !== category) return false;
-        return !!this.s.inventory[i.type]?.[i.id];
+        return this.featuredShopItem(i) && !!this.s.inventory[i.type]?.[i.id];
       }),
       pages = Math.max(1, Math.ceil(rows.length / 8));
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
@@ -997,44 +1046,22 @@ class Game {
     this.activity = null;
     const categories = [
       ["friends", "ともだち"],
-      ["fish", "さかな"],
       ["dinosaurs", "きょうりゅう"],
-      ["animals", "いきもの"],
       ["clothing", "ふく"],
       ["furniture", "かぐ"],
-      ["cards", "かーど"],
-      ["trophies", "とろふぃー"],
     ];
     if (!categories.some(([id]) => id === category)) category = "friends";
     let rows, owned;
     if (category === "friends") {
-      rows = D.FRIENDS;
+      rows = D.ACTIVE_FRIENDS;
       owned = (x) => !!this.s.friends[x.id];
-    } else if (category === "fish") {
-      rows = D.FISH;
-      owned = (x) => !!this.s.fishing.fishBook[x.id];
     } else if (category === "dinosaurs") {
       rows = D.DINOS;
       owned = (x) => !!this.s.dinosaurs.fossilBook[x.id]?.completed;
-    } else if (category === "animals") {
-      rows = D.ANIMALS;
-      owned = (x) => this.s.collections.animals.includes(x.id);
-    } else if (category === "cards") {
-      rows = D.CREATURES;
-      owned = (x) => !!this.s.arena.cards[x.id];
-    } else if (category === "trophies") {
-      rows = [
-        ...D.TOURNAMENTS.map((x) => ({ id: "trophy_" + x.id, name: x.name })),
-        ...D.SUBJECTS.map((x) => ({ id: "subject_" + x.id, name: x.name })),
-        ...D.ACHIEVEMENTS.filter((x) => x.target >= 20).map((x) => ({
-          id: "trophy_" + x.id,
-          name: x.name,
-        })),
-        { id: "obecolle_master", name: "おべこれますたー" },
-      ];
-      owned = (x) => !!this.s.inventory.specialItems[x.id];
     } else {
-      rows = D.ITEMS.filter((i) => i.type === category);
+      rows = D.ITEMS.filter(
+        (i) => i.type === category && this.featuredShopItem(i),
+      );
       owned = (x) => !!this.s.inventory[category]?.[x.id];
     }
     const pages = Math.max(1, Math.ceil(rows.length / 8));
@@ -1042,28 +1069,26 @@ class Game {
     this.category = category;
     this.page = page;
     const hints = {
-      friends: "しまを そだてると あえるよ",
-      fish: "つりばで みつけよう",
-      dinosaurs: "はっくつで みつけよう",
-      animals: "いきものを まなぼう",
-      cards: "ありーなで かつと もらえるよ",
-      trophies: "できたことを ふやそう",
-      clothing: "しょっぷで みつかるよ",
-      furniture: "しょっぷで みつかるよ",
+      friends: "まちで はなしかけてみよう",
+      dinosaurs: "たいぴんぐはっくつで みつけよう",
+      clothing: "しょっぷや ごほうびで みつかるよ",
+      furniture: "しょっぷや ごほうびで みつかるよ",
     };
     const visual = (x, known) =>
       category === "friends"
         ? friendPortrait(x, !known)
-        : ["fish", "dinosaurs", "animals", "cards"].includes(category)
+        : category === "dinosaurs"
           ? this.icon(x, !known)
-          : ["clothing", "furniture"].includes(category)
-            ? itemPreview(x, !known)
-            : `<span class="trophy-preview${known ? "" : " silhouette"}">🏆</span>`;
+          : itemPreview(x, !known);
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>これくしょんぶっく</h2><p>みつけたものが ここに ふえていくよ。</p></div><span class="collection-count">${rows.filter(owned).length} / ${rows.length}</span><button data-a="island">しまへ</button></div><div class="tabs">${categories.map(([id, n]) => `<button class="${category === id ? "active" : ""}" data-a="book:${id}">${n}</button>`).join("")}</div><div class="grid collection-grid">${rows.slice(page * 8, page * 8 + 8).map((x) => {
+      `<div class="row spread panel-heading"><div><h2>これくしょんぶっく</h2><p>いま だいじなものだけを みやすく まとめたよ。</p></div><span class="collection-count">${rows.filter(owned).length} / ${rows.length}</span><button data-a="island">まちへ</button></div>
+      <div class="tabs">${categories.map(([id, n]) => `<button class="${category === id ? "active" : ""}" data-a="book:${id}">${n}</button>`).join("")}</div>
+      <div class="grid collection-grid">${rows.slice(page * 8, page * 8 + 8).map((x) => {
         const known = owned(x);
-        return `<button class="tile collection-card ${known ? "" : "locked"}" data-a="detail:${category}:${x.id}"><div class="collection-icon">${visual(x, known)}</div><span class="name">${known ? E(category === "trophies" ? this.specialName(x.id) : x.name) : "？？？"}</span><small>${known ? (category === "fish" ? this.s.fishing.fishBook[x.id].biggest + " cm" : category === "friends" ? this.hearts(this.s.friends[x.id].affinity) : "もってる！") : hints[category]}</small></button>`;
-      }).join("")}</div>${this.pagination(page, pages, "bookpage")}<div class="row collection-footer"><button data-a="achievements">できたこと</button><button data-a="memories">おもいで</button></div>`,
+        return `<button class="tile collection-card ${known ? "" : "locked"}" data-a="detail:${category}:${x.id}"><div class="collection-icon">${visual(x, known)}</div><span class="name">${known ? E(x.name) : "？？？"}</span><small>${known ? (category === "friends" ? this.hearts(this.s.friends[x.id].affinity) : "みつけた！") : hints[category]}</small></button>`;
+      }).join("")}</div>
+      ${this.pagination(page, pages, "bookpage")}
+      <div class="row collection-footer"><button data-a="memories">おもいで</button></div>`,
       "wide child-grid-panel collection-panel",
     );
   }
@@ -1174,7 +1199,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
     await this.commit();
     const done = this.s.missions.daily.filter((m) => m.claimed).length;
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>きょうの みっしょん</h2><p>${done} / 3 できたよ。じぶんの ぺーすで あそぼう。</p></div><button data-a="island">しまへ</button></div><div class="grid three mission-grid">${this.s.missions.daily.map((mission) => {
+      `<div class="row spread panel-heading"><div><h2>きょうの みっしょん</h2><p>${done} / 3 できたよ。じぶんの ぺーすで あそぼう。</p></div><button data-a="island">まちへ</button></div><div class="grid three mission-grid">${this.s.missions.daily.map((mission) => {
         const progress = Math.max(
           0,
           Math.min(
@@ -1199,7 +1224,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         )
         .join(
           "",
-        )}</div><p><button class="gold" data-a="ending" ${R.masterReady(this.s) ? "" : "disabled"}>${this.s.progression.storyFlags.master ? "おいわいをもういちど" : "かんせいいべんとをはじめる"}</button></p><button data-a="island">しまへ</button>`,
+        )}</div><p><button class="gold" data-a="ending" ${R.masterReady(this.s) ? "" : "disabled"}>${this.s.progression.storyFlags.master ? "おいわいをもういちど" : "かんせいいべんとをはじめる"}</button></p><button data-a="island">まちへ</button>`,
     );
   }
   async ending() {
@@ -1233,7 +1258,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
     this.walkKeys.clear();
     this.modalOpen = true;
     this.world.paused = true;
-    this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>ひとやすみ</h2><div class="grid two"><button class="primary" data-a="resume">つづける</button><button data-a="settings">せってい</button>${this.activity ? '<button data-a="restartactivity">やりなおす</button><button data-a="quitactivity">やめる</button>' : ""}<button data-a="quickhome">🏝 しまへ</button><button data-a="export">ばっくあっぷ</button><button data-a="confirmtitle">たいとるへ</button></div></section></div>`;
+    this.dialog.innerHTML = `<div class="overlay"><section class="panel small"><h2>ひとやすみ</h2><div class="grid two"><button class="primary" data-a="resume">つづける</button><button data-a="settings">せってい</button>${this.activity ? '<button data-a="restartactivity">やりなおす</button><button data-a="quitactivity">やめる</button>' : ""}<button data-a="quickhome">🏘 まちへ</button><button data-a="export">ばっくあっぷ</button><button data-a="confirmtitle">たいとるへ</button></div></section></div>`;
     this.syncInteractionState();
   }
   settings() {
@@ -1250,7 +1275,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       )
       .join(
         "",
-      )}</select></p><p><label><input type="checkbox" data-setting="keyboard" ${this.s.settings.keyboard ? "checked" : ""}> きーぼーどがいど</label></p><div class="row"><button data-a="export">JSONほぞん</button><button data-a="importslot:${this.s.meta.slotId}">JSONふくげん</button><button data-a="quickhome">🏝 しまへ</button><button data-a="fullscreen">がめんをおおきく</button><button class="primary" data-a="resume">もどる</button></div></section></div>`;
+      )}</select></p><p><label><input type="checkbox" data-setting="keyboard" ${this.s.settings.keyboard ? "checked" : ""}> きーぼーどがいど</label></p><div class="row"><button data-a="export">JSONほぞん</button><button data-a="importslot:${this.s.meta.slotId}">JSONふくげん</button><button data-a="quickhome">🏘 まちへ</button><button data-a="fullscreen">がめんをおおきく</button><button class="primary" data-a="resume">もどる</button></div></section></div>`;
     this.syncInteractionState();
   }
   async importSlot(slot) {
@@ -1292,7 +1317,13 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
   }
   help() {
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>あそびかた</h2><p>すきなことから やってみよう！</p></div><button data-a="title">たいとるへ</button></div><div class="grid two help-grid"><div class="tile"><span class="icon">🏝️</span><h3>しまを あるこう</h3><p>↑ ↓ ← → または W A S D。たてものを おしても そこまで あるくよ。</p></div><div class="tile"><span class="icon">📘</span><h3>まなんで ひろげよう</h3><p>がっこうで すたーを あつめると、あたらしい ばしょが ひらくよ！</p></div><div class="tile"><span class="icon">🎣</span><h3>あつめて あそぼう</h3><p>たいぴんぐ・つり・はっくつ・ありーなで、ともだちや ずかんが ふえていくよ。</p></div><div class="tile"><span class="icon">⌨️</span><h3>こまったとき</h3><p>Enter：えらぶ ／ Esc：ひとやすみ。がっこうなどの がめんでは やじるしで ぼたんを えらべるよ。</p></div></div><p class="adult-note">おとなのひとへ：ほぞんは じどうです。せっていから JSONばっくあっぷも ほぞんできます。</p>`,
+      `<div class="row spread panel-heading"><div><h2>あそびかた</h2><p>あるいて、はなして、みつけよう！</p></div><button data-a="title">たいとるへ</button></div>
+      <div class="grid two help-grid">
+        <div class="tile"><span class="icon">🚶</span><h3>じぶんで まちを あるく</h3><p>↑ ↓ ← → または W A S D。しゅじんこうを うごかして、ちかくの ばしょを みつけよう。</p></div>
+        <div class="tile"><span class="icon">🗣️</span><h3>ともだちと はなす</h3><p>ちかづくと「はなす」が でるよ。ともだちには それぞれ こえと せりふが あるよ。</p></div>
+        <div class="tile"><span class="icon">⛏️</span><h3>たいぴんぐで はっくつ</h3><p>ことばを うつと いわが くだける！ 30のLvに 30しゅるいの きょうりゅうが ねむっているよ。</p></div>
+        <div class="tile"><span class="icon">📖</span><h3>みつけたものを あつめる</h3><p>きょうりゅうや ともだちが ずかんに ふえていくよ。いまは だいじなものだけを ひょうじしているよ。</p></div>
+      </div><p class="adult-note">おとなのひとへ：つり・旧はっくつ・ありーなは Rebuild中のため いったん非表示です。</p>`,
       "wide child-grid-panel help-panel",
     );
   }
@@ -1341,10 +1372,17 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         this.walkKeys.add(e.code);
         return;
       }
-      if (e.code === "Enter" && this.nearDoor && !e.repeat) {
-        e.preventDefault();
-        this.action(this.nearDoor.id).catch((err) => this.error(err));
-        return;
+      if (e.code === "Enter" && !e.repeat) {
+        if (this.nearFriend) {
+          e.preventDefault();
+          this.action(this.nearFriend).catch((err) => this.error(err));
+          return;
+        }
+        if (this.nearDoor) {
+          e.preventDefault();
+          this.action(this.nearDoor.id).catch((err) => this.error(err));
+          return;
+        }
       }
     }
     if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
@@ -1452,6 +1490,13 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       ].includes(a)
     )
       this.closeDialog();
+    if (["fishing", "excavation", "arena", "togetherfishing", "togetherdig"].includes(a)) {
+      this.say(
+        "いまは おやすみちゅう",
+        "この あそびは Rebuildちゅうだよ。いまは まち・ともだち・たいぴんぐはっくつを たのしんでね！",
+      );
+      return;
+    }
     if (
       D.FACILITIES.some((f) => f.id === a) &&
       a !== "plaza" &&
@@ -1474,6 +1519,9 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         break;
       case "walkenter":
         if (this.nearDoor) await this.action(this.nearDoor.id);
+        break;
+      case "walktalk":
+        if (this.nearFriend) await this.action(this.nearFriend);
         break;
       case "creatorcancel": {
         const wasEditing = this.editing;
@@ -1551,7 +1599,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         if (this.activity) {
           this.say(
             "しまへ もどる？",
-            "いまの あそびを とじて しまへ もどるよ。つり・はっくつ・たいかいの つづきは のこるよ。",
+            "いまの あそびを とじて まちへ もどるよ。",
             [
               ["しまへ もどる", "quitactivity"],
               ["つづける", "closedialog"],

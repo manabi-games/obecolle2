@@ -30,7 +30,7 @@ export const SUBJECTS = [
 export const FACILITIES = [
   ["mansion", "おべこれまんしょん", 1, 0, -8, "#f6c887"],
   ["school", "まなびがっこう", 1, 9, -6, "#ef987a"],
-  ["typing", "たいぴんぐけんきゅうじょ", 2, 12, 1, "#80c9df"],
+  ["typing", "たいぴんぐはっくつじょ", 2, 12, 1, "#80c9df"],
   ["arena", "さいきょうありーな", 8, 9, 8, "#b4a0dc"],
   ["fishing", "つりみなと", 4, -1, 11, "#69b9c8"],
   ["shop", "しょっぷすとりーと", 3, -9, 6, "#e8abbd"],
@@ -389,6 +389,41 @@ export const FRIENDS = names.map((name, i) => ({
                 ? [1, 3, 6][i - 24]
                 : [0, 0, 0][i - 27],
 }));
+const FRIEND_VOICES = [
+  { rate: 1.00, pitch: 1.18, voiceIndex: 0 },
+  { rate: 0.82, pitch: 0.92, voiceIndex: 1 },
+  { rate: 0.94, pitch: 1.32, voiceIndex: 0 },
+  { rate: 1.05, pitch: 0.86, voiceIndex: 1 },
+  { rate: 0.88, pitch: 1.12, voiceIndex: 0 },
+  { rate: 0.76, pitch: 0.82, voiceIndex: 1 },
+  { rate: 1.08, pitch: 1.02, voiceIndex: 0 },
+  { rate: 0.90, pitch: 1.25, voiceIndex: 1 },
+  { rate: 0.98, pitch: 0.78, voiceIndex: 1 },
+  { rate: 0.86, pitch: 1.38, voiceIndex: 0 },
+];
+const FRIEND_LINES = [
+  ["おーい！ きょうも あそぼう！", "きょうりゅう、みつけに いこうよ！", "きのうより はやく うてるかな？"],
+  ["こんにちは。きょうは どこへ いく？", "ゆっくりでも ちゃんと すすんでるよ。", "かせきって ふしぎだね。"],
+  ["やっほー！ きょうも きたんだね！", "あたらしい きょうりゅう、みたいな！", "たいぴんぐ いっしょに がんばろう！"],
+  ["よし！ きょうも ちょうせんだ！", "こんぼ つづくと きもちいいよな！", "でっかい かせき みつけようぜ！"],
+  ["きょうは なにを みつける？", "ずかんが ふえると うれしいね。", "また おはなし しようね。"],
+  ["……きたね。", "ゆっくり あるくのも いいよ。", "つぎの ちそう、きになる。"],
+  ["おっ、みつけた！", "まちを あるくの たのしいね！", "はっくつの おてつだい するよ！"],
+  ["こんにちは！ こえ きこえた？", "きょうりゅうの なまえって おもしろいね。", "また あえたね！"],
+  ["よっ！ いいところに きたな！", "たいぴんぐ、しょうぶする？", "かせきを みつけたら おしえて！"],
+  ["わーい！ きょうも あえた！", "あたらしい はっけん あるかな？", "ずかん いっぱいに したいね！"],
+];
+for (let i = 0; i < FRIENDS.length; i++) {
+  FRIENDS[i].voice = FRIEND_VOICES[i % FRIEND_VOICES.length];
+  FRIENDS[i].lines =
+    FRIEND_LINES[i] || [
+      "こんにちは！",
+      "きょうも いっしょに あそぼう。",
+      "また おはなし しようね。",
+    ];
+}
+export const ACTIVE_FRIENDS = FRIENDS.slice(0, 10);
+
 export const COLORS = [
   "#40b2b1",
   "#709cd2",

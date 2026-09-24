@@ -2028,3 +2028,70 @@ body.panel-open #toast {
   .creator-dots { margin: 5px 0; }
   .creator-actions { margin-top: 4px; }
 }
+
+
+/* v1.5 protagonist-first rebuild */
+.walk-bar {
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 18px;
+  width: min(920px, calc(100vw - 32px));
+  justify-content: center;
+  align-items: center;
+  background: #fff7e6e8;
+  border: 3px solid #fffbed;
+  border-radius: 24px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+.walk-guide { min-width: 270px; line-height: 1.2; }
+.walk-guide strong, .walk-guide small { display: block; }
+.walk-guide small { margin-top: 4px; color: #67796f; font-size: 14px; }
+#walk-talk:not(:disabled) {
+  background: #f0c96d;
+  border-color: #fff0b8;
+  color: #5f4b1d;
+}
+body.island-interactive #hud { padding: 14px 18px; }
+body.island-interactive #hud .profile,
+body.island-interactive #hud .wallet { padding: 8px 15px; }
+body.island-interactive .world-label { font-size: 16px; }
+.typing-lab-panel .typing-goal {
+  background: #f3e4c7;
+  border: 3px solid #fff4d3;
+}
+.dig-levels button { min-height: 108px; }
+.dig-typing-badge {
+  width: fit-content;
+  margin: 8px auto 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #ead3aa;
+  color: #6f5837;
+  font-weight: 900;
+}
+.dino-discovery {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin: 12px auto;
+  padding: 14px;
+  max-width: 520px;
+  border-radius: 22px;
+  background: #f5ead0;
+  border: 3px solid #e6c98a;
+}
+.dino-discovery.new {
+  background: #fff2b8;
+  border-color: #f0c453;
+  animation: pop .35s ease-out;
+}
+.dino-discovery .collection-icon { height: 120px; }
+.dino-discovery h3 { margin: 4px 0; font-size: 28px; }
+@media (max-width: 760px) {
+  .walk-bar { flex-wrap: wrap; }
+  .walk-guide { width: 100%; text-align: center; }
+  .dino-discovery { grid-template-columns: 1fr; text-align: center; }
+}

@@ -9,6 +9,7 @@ import {
 import {
   FACILITIES,
   FRIENDS,
+  ACTIVE_FRIENDS,
   FISH,
   DINOS,
   CREATURES,
@@ -266,6 +267,7 @@ export class World {
     this.fighter = null;
     this.opponent = null;
     this.typingCreature = null;
+    this.typingRock = null;
     this.rescueFish = [];
     this.scene.add(new THREE.HemisphereLight("#fff6de", "#9ab7a4", 1.8));
     const sun = new THREE.DirectionalLight("#fff3d3", 2.1);
@@ -316,10 +318,10 @@ export class World {
       }
       if (name === "celebration") {
         this.camTo.set(12, 14, 25);
-        for (let i = 0; i < 30; i++) {
-          const angle = (i / 30) * Math.PI * 2,
+        for (let i = 0; i < ACTIVE_FRIENDS.length; i++) {
+          const angle = (i / ACTIVE_FRIENDS.length) * Math.PI * 2,
             c = this.human(
-              { ...FRIENDS[i].baseAppearance, outfit: "clothing_" + FRIENDS[i].defaultOutfit },
+              { ...ACTIVE_FRIENDS[i].baseAppearance, outfit: "clothing_" + ACTIVE_FRIENDS[i].defaultOutfit },
               Math.sin(angle) * 5,
               Math.cos(angle) * 5 + 1,
               "happy",
@@ -331,7 +333,8 @@ export class World {
       } else this.fireworks = false;
     } else if (name === "mansion") {
       this.box("#b2cc9d", [26, 0.3, 20], [0, -0.2, 0]);
-      const ids = Object.keys(s.friends),
+      const activeIds = new Set(ACTIVE_FRIENDS.map((f) => f.id)),
+        ids = Object.keys(s.friends).filter((id) => activeIds.has(id)),
         total = ids.length + 1,
         cols = Math.min(6, Math.max(3, Math.ceil(Math.sqrt(total)))),
         rows = Math.ceil(total / cols);
@@ -416,9 +419,23 @@ export class World {
       this.sphere("#baf0bc", [0.7, 0.7, 0.7], [4, 2.5, -1]);
       this.camTo.set(0, 4, 13);
       this.target.set(0, 1, 0);
-      this.typingCreature = this.add(creatureModel(DINOS[10], 1.3), 5, 0, 2);
+      this.typingRock = this.add(
+        mesh("ball", "#8f7d68", [1.8, 1.25, 1.45]),
+        4.2,
+        1.1,
+        1.2,
+      );
+      this.typingCreature = this.add(
+        creatureModel(
+          DINOS[Math.max(0, Math.min(DINOS.length - 1, (params.level || 1) - 1))],
+          1.3,
+        ),
+        5,
+        0,
+        2,
+      );
       this.creatures.push(this.typingCreature);
-      this.typingCreature.visible = ["escape", "battle"].includes(params.mode);
+      this.typingCreature.visible = false;
       this.rescueFish = [];
       if (params.mode === "rescue") {
         const start = ((Math.max(1, params.level || 1) - 1) * 5) % FISH.length;
@@ -555,7 +572,7 @@ export class World {
       this.box("#c3a276", [1.5, 0.5, 0.1], [x, 0.7, 0.75]);
     }
     this.sphere("#b0e4e1", [0.8, 0.11, 0.8], [0, 0.53, 1]);
-    for (const f of FACILITIES.filter((x) => x.id !== "plaza"))
+    for (const f of FACILITIES.filter((x) => !["plaza", "fishing", "excavation", "arena"].includes(x.id)))
       this.building(f);
     for (let i = 0; i < 24; i++) {
       const angle = (i / 24) * Math.PI * 2;
@@ -604,25 +621,25 @@ export class World {
         ? []
         : this.save
           ? Object.keys(this.save.friends)
-          : FRIENDS.slice(0, 4).map((f) => f.id);
-    const visibleFriendIds = allFriendIds.slice(0, 30);
+          : ACTIVE_FRIENDS.slice(0, 4).map((f) => f.id);
+    const activeIds = new Set(ACTIVE_FRIENDS.map((f) => f.id));
+    const visibleFriendIds = allFriendIds
+      .filter((id) => activeIds.has(id))
+      .slice(0, 10);
+    const friendSpots = [
+      [-6, 7], [6, 7], [-8, 2], [8, 2], [-6, -4],
+      [6, -4], [-12, 6], [12, 6], [-10, -7], [10, -7],
+    ];
     visibleFriendIds.forEach((id, i) => {
-      const f = FRIENDS.find((x) => x.id === id);
+      const f = ACTIVE_FRIENDS.find((x) => x.id === id);
       if (!f) return;
-      const ring = Math.floor(i / 10),
-        ringStart = ring * 10,
-        ringCount = Math.min(10, visibleFriendIds.length - ringStart),
-        slot = i - ringStart,
-        angle = (slot / Math.max(1, ringCount)) * Math.PI * 2 + ring * 0.28,
-        radius = 4.8 + ring * 2.8,
-        x = Math.sin(angle) * radius,
-        z = Math.cos(angle) * radius;
+      const [x, z] = friendSpots[i] || [0, 0];
       const c = this.human(
         { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit },
         x,
         z,
         ["walk", "read", "wave", "think"][i % 4],
-        0.75,
+        0.9,
       );
       c.userData.ai = true;
       c.userData.origin = c.position.clone();
@@ -631,12 +648,10 @@ export class World {
       this.labels.at(-1).strictHover = true;
     });
     if (this.save) {
-      this.hero = this.human(this.save.player.appearance, 0, 5, "idle", 0.85);
-      this.interact(this.hero, "room", "じぶんのへや", 2.4);
-      this.labels.at(-1).hoverOnly = true;
+      this.hero = this.human(this.save.player.appearance, 0, 5, "idle", 1.1);
     }
-    this.camTo.set(21, 26, 35);
-    this.target.set(0, 0, 0);
+    this.camTo.set(6.8, 8.8, 16.5);
+    this.target.set(0, 1.1, 5);
   }
   room(s, friendId) {
     this.box(
@@ -945,6 +960,12 @@ export class World {
     requestAnimationFrame(this.frame);
   }
   typingProgress(words, mode) {
+    if (mode === "basic" && this.typingRock) {
+      const scale = Math.max(0.12, 1 - words * 0.17);
+      this.typingRock.scale.set(1.8 * scale, 1.25 * scale, 1.45 * scale);
+      this.typingRock.rotation.y += 0.32;
+      if (words >= 5) this.typingRock.visible = false;
+    }
     if (mode === "rescue") {
       const x = this.rescueFish[words - 1];
       if (x) {

@@ -1,6 +1,9 @@
 import { FACILITIES } from "../data/catalog.js";
 
-export const doors = FACILITIES.map((f) => ({
+const HIDDEN_FACILITIES = new Set(["fishing", "excavation", "arena"]);
+const WALK_FACILITIES = FACILITIES.filter((f) => !HIDDEN_FACILITIES.has(f.id));
+
+export const doors = WALK_FACILITIES.filter((f) => f.id !== "plaza").map((f) => ({
   ...f,
   z: f.z + (f.id === "plaza" ? 2.6 : 2.8),
 }));
@@ -8,7 +11,7 @@ export const doors = FACILITIES.map((f) => ({
 export function walkable(x, z) {
   if ((x / 19) ** 2 + (z / 15) ** 2 > 1) return false;
   if (Math.hypot(x, z - 1) < 1.55) return false;
-  return !FACILITIES.some(
+  return !WALK_FACILITIES.some(
     (f) =>
       f.id !== "plaza" &&
       Math.abs(x - f.x) < (f.id === "mansion" ? 2.8 : 1.95) &&
