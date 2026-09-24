@@ -219,7 +219,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.6.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.7.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -473,21 +473,34 @@ class Game {
       return "まちには まだ あっていない ともだちが いるよ。たいぴんぐや がくしゅうを つづけよう！";
     return "まちを あるいて、ともだちと おはなししよう！";
   }
-  mansion() {
+  mansion(page = 0) {
     this.setScene("mansion");
-    this.screen.innerHTML =
-      '<div class="scene-bar"><button data-a="island">まちへ</button><button class="primary" data-a="room">じぶんのへや</button></div>';
-    this.syncInteractionState();
+    const friends = D.ACTIVE_FRIENDS.filter((f) => !!this.s.friends[f.id]),
+      rows = [{ id: "self", name: "じぶんのへや", self: true }, ...friends],
+      pageSize = 6,
+      pages = Math.max(1, Math.ceil(rows.length / pageSize));
+    page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
+    this.mansionPage = page;
+    this.panel(
+      `<div class="row spread panel-heading"><div><h2>おべこれまんしょん</h2><p>いきたい おへやを えらぼう。</p></div><button data-a="island">まちへ</button></div><div class="grid mansion-room-grid">${rows.slice(page * pageSize, page * pageSize + pageSize).map((row) => {
+        if (row.self)
+          return `<button class="tile mansion-room-card self-room-card" data-a="resident:self">${appearancePortrait(this.s.player.appearance, null, false, this.s.player.name)}<strong>じぶんのへや</strong><small>もようがえ・きせかえ</small></button>`;
+        const state = this.s.friends[row.id];
+        return `<button class="tile mansion-room-card" data-a="resident:${row.id}">${friendPortrait(row)}<strong>${E(row.name)}のへや</strong><small>${this.hearts(state.affinity)}</small></button>`;
+      }).join("")}</div>${pages > 1 ? this.pagination(page, pages, "mansionpage") : ""}`,
+      "wide child-grid-panel mansion-panel",
+    );
   }
   room(friend = null) {
     if (
       friend &&
-      (!this.s.friends[friend] || !D.FRIENDS.some((f) => f.id === friend))
+      (!this.s.friends[friend] || !D.ACTIVE_FRIENDS.some((f) => f.id === friend))
     )
       throw Error("ともだちの おへやが みつからないよ");
     this.roomFriend = friend;
     this.setScene("room", { friend });
-    this.screen.innerHTML = `<div class="scene-bar"><button data-a="mansion">まんしょんへ</button>${friend ? `<button class="primary" data-a="friend:${friend}">おはなし</button>` : '<button data-a="decorate">もようがえ</button><button data-a="wardrobe">きせかえ</button><button data-a="display">これくしょんを かざる</button>'}</div>`;
+    const data = friend ? D.ACTIVE_FRIENDS.find((f) => f.id === friend) : null;
+    this.screen.innerHTML = `<div class="scene-bar room-bar"><button data-a="mansion">まんしょんへ</button>${friend ? `<span class="room-owner">${E(data.name)}のへや</span><button class="primary" data-a="friend:${friend}">おはなし</button><button data-a="gift:${friend}">🎁 ぷれぜんと</button>` : '<span class="room-owner">じぶんのへや</span><button class="primary" data-a="decorate">もようがえ</button><button data-a="wardrobe">きせかえ</button>'}<button data-a="island">まちへ</button></div>`;
     this.syncInteractionState();
   }
   say(name, text, choices = [["つづける", "closedialog"]]) {
@@ -595,7 +608,7 @@ class Game {
   }
   giftMenu(id, page = 0) {
     this.closeDialog();
-    const friend = D.FRIENDS.find((f) => f.id === id);
+    const friend = D.ACTIVE_FRIENDS.find((f) => f.id === id);
     if (!friend || !this.s.friends[id])
       throw Error("ともだちが みつからないよ");
     const items = D.ITEMS.filter(
@@ -604,14 +617,14 @@ class Game {
           this.featuredShopItem(i) &&
           R.availableFurnitureCount(this.s, i.id) > 0,
       ),
-      pages = Math.max(1, Math.ceil(items.length / 8));
-    page = Number.isInteger(Number(page)) ? Number(page) : 0;
-    page = Math.max(0, Math.min(pages - 1, page));
+      pageSize = 6,
+      pages = Math.max(1, Math.ceil(items.length / pageSize));
+    page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.giftFriend = id;
     this.giftPage = page;
     this.panel(
-      `<div class="row spread panel-heading"><h2>${friend.name}へ ぷれぜんと</h2><button data-a="resident:${id}">もどる</button></div><div class="grid gift-grid">${items.slice(page * 8, page * 8 + 8).map((i) => `<button class="tile" data-a="give:${id}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>おくれる ${R.availableFurnitureCount(this.s, i.id)}こ</small></button>`).join("") || "<p>おへやで つかっていない かぐが ないよ。</p>"}</div>${items.length ? this.pagination(page, pages, "giftpage") : ""}`,
-      "wide child-grid-panel gift-panel",
+      `<div class="row spread panel-heading"><div><h2>${E(friend.name)}へ ぷれぜんと</h2><p>おくった かぐは おへやに じどうで かざられるよ。</p></div><button data-a="resident:${id}">もどる</button></div><div class="grid room-item-grid gift-grid">${items.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card" data-a="give:${id}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>おくれる ${R.availableFurnitureCount(this.s, i.id)}こ</small></button>`).join("") || '<div class="empty-room-message">いま おくれる かぐが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "giftpage") : ""}`,
+      "wide child-grid-panel gift-panel room-edit-panel",
     );
   }
   together(id) {
@@ -868,43 +881,68 @@ class Game {
   pagination(page, pages, action) {
     return `<div class="pagination"><button data-a="${action}:${page - 1}" ${page <= 0 ? "disabled" : ""}>◀</button><span>${page + 1} / ${Math.max(1, pages)}</span><button data-a="${action}:${page + 1}" ${page >= pages - 1 ? "disabled" : ""}>▶</button></div>`;
   }
-  decorate() {
+  decorate(slot = null, page = 0) {
     this.roomFriend = null;
-    const items = D.ITEMS.filter(
-      (i) =>
-        i.type === "furniture" &&
-        this.featuredShopItem(i) &&
-        R.availableFurnitureCount(this.s, i.id) > 0,
-    );
-    if (!this.decorateItem || !items.some((i) => i.id === this.decorateItem))
-      this.decorateItem = items[0]?.id || null;
     const slotNames = [
-      "うしろ・ひだり",
-      "うしろ・まんなか",
-      "うしろ・みぎ",
-      "まえ・ひだり",
-      "まえ・まんなか",
-      "まえ・みぎ",
+      "ひだり・うしろ",
+      "まんなか・うしろ",
+      "みぎ・うしろ",
+      "ひだり・まえ",
+      "まんなか・まえ",
+      "みぎ・まえ",
     ];
+    if (slot === null || slot === undefined) {
+      this.decorateSlot = null;
+      this.decoratePage = 0;
+      this.panel(
+        `<div class="row spread panel-heading"><div><h2>へやの もようがえ</h2><p>かえたい ばしょを 1つ えらぼう。</p></div><button data-a="room">おへやへ</button></div><div class="grid room-location-grid">${Array.from({ length: 6 }, (_, i) => {
+          const item = D.ITEMS.find((x) => x.id === this.s.room.slots[i]);
+          return `<button class="tile room-location-card" data-a="decorateslot:${i}"><strong>${i + 1}. ${slotNames[i]}</strong><div class="room-location-preview">${item ? itemPreview(item) : '<span class="empty-slot">＋</span>'}</div><small>${item ? E(item.name) : "あいている"}</small></button>`;
+        }).join("")}</div>`,
+        "wide child-grid-panel room-edit-panel",
+      );
+      return;
+    }
+    slot = Number(slot);
+    if (!Number.isInteger(slot) || slot < 0 || slot > 5)
+      throw Error("かえる ばしょを えらんでね");
+    const currentId = this.s.room.slots[slot] || null,
+      availableForSlot = (id) => {
+        const owned = this.s.inventory.furniture[id] || 0,
+          usedElsewhere = Object.entries(this.s.room.slots).filter(
+            ([key, value]) => +key !== slot && value === id,
+          ).length;
+        return Math.max(0, owned - usedElsewhere);
+      },
+      rows = D.ITEMS.filter(
+        (i) =>
+          i.type === "furniture" &&
+          this.featuredShopItem(i) &&
+          availableForSlot(i.id) > 0,
+      ),
+      pageSize = 6,
+      pages = Math.max(1, Math.ceil(rows.length / pageSize));
+    page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
+    this.decorateSlot = slot;
+    this.decoratePage = page;
+    const current = D.ITEMS.find((x) => x.id === currentId);
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>へやの もようがえ</h2><p>① かぐを えらぶ → ② おきたい ばしょを えらぶ</p></div><button data-a="room">おへやへ</button></div>${items.length ? `<div class="furniture-picker">${items.map((i) => `<button class="${i.id === this.decorateItem ? "selected" : ""}" data-a="pickfurniture:${i.id}">${itemPreview(i)}<small>${E(i.name)} ／ つかえる ${R.availableFurnitureCount(this.s, i.id)}こ</small></button>`).join("")}</div>` : '<p class="muted">あたらしく おける かぐは ないよ。いま おいている かぐは したから かたづけられるよ。</p>'}<div class="room-slot-map">${Array.from({ length: 6 }, (_, i) => {
-        const item = D.ITEMS.find((x) => x.id === this.s.room.slots[i]);
-        return `<div class="room-slot-wrap slot-${i}"><button class="room-slot" data-a="place:${i}"><strong>${slotNames[i]}</strong>${item ? itemPreview(item) + `<small>${E(item.name)}</small>` : '<span class="empty-slot">＋</span><small>あいている</small>'}</button>${item ? `<button class="slot-clear" data-a="clearslot:${i}">かたづける</button>` : ""}</div>`;
-      }).join("")}</div><div class="row"><button data-a="clearroom">ぜんぶ かたづける</button></div>`,
-      "wide child-grid-panel decorate-panel",
+      `<div class="row spread panel-heading"><div><h2>${slot + 1}. ${slotNames[slot]}</h2><p>ここに おく かぐを えらぼう。</p></div><button data-a="decorate">ばしょを えらぶ</button></div><div class="room-edit-current"><span>いま</span><strong>${current ? E(current.name) : "なにも なし"}</strong></div><div class="grid room-item-grid">${rows.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card ${i.id === currentId ? "selected" : ""}" data-a="placeitem:${slot}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${i.id === currentId ? "✓ いま ここ" : "ここに おく"}</small></button>`).join("") || '<div class="empty-room-message">まだ おける かぐが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "decoratepage") : ""}<div class="room-edit-actions">${current ? `<button data-a="clearslot:${slot}">この かぐを かたづける</button>` : ""}<button data-a="room">おへやを みる</button></div>`,
+      "wide child-grid-panel room-edit-panel",
     );
   }
-  async place(slot) {
+  async placeItem(slot, id) {
+    slot = Number(slot);
     if (!Number.isInteger(slot) || slot < 0 || slot > 5)
-      throw Error("おく ばしょを えらんでね");
-    const id = this.decorateItem,
-      item = D.ITEMS.find((i) => i.id === id && i.type === "furniture");
-    if (!id || !item) throw Error("さきに かぐを えらんでね");
-    const used = Object.entries(this.s.room.slots).filter(
-      ([k, v]) => +k !== slot && v === id,
-    ).length;
-    if (used >= (this.s.inventory.furniture[id] || 0))
-      throw Error("そのかぐは ぜんぶ おへやに おいてあるよ");
+      throw Error("かぐの ばしょが みつからないよ");
+    const item = D.ITEMS.find((i) => i.id === id && i.type === "furniture");
+    if (!item) throw Error("かぐが みつからないよ");
+    const owned = this.s.inventory.furniture[id] || 0,
+      usedElsewhere = Object.entries(this.s.room.slots).filter(
+        ([key, value]) => +key !== slot && value === id,
+      ).length;
+    if (usedElsewhere >= owned)
+      throw Error("そのかぐは ぜんぶ つかっているよ");
     this.s.room.slots[slot] = id;
     await this.commit();
     this.room();
@@ -926,7 +964,7 @@ class Game {
         if (i.type !== category) return false;
         return this.featuredShopItem(i) && !!this.s.inventory[i.type]?.[i.id];
       }),
-      pages = Math.max(1, Math.ceil(rows.length / 8));
+      pages = Math.max(1, Math.ceil(rows.length / 6));
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.wardrobeCategory = category;
     this.wardrobePage = page;
@@ -939,7 +977,7 @@ class Game {
             ? this.s.player.appearance.glasses === i.id
             : this.s.room[i.type] === i.id;
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>きせかえ・かべ・ゆか</h2><p>もっているものから えらべるよ。</p></div><button data-a="room">おへやへ</button></div><div class="tabs">${categories.map(([id, name]) => `<button class="${id === category ? "active" : ""}" data-a="wardrobecat:${id}">${name}</button>`).join("")}</div><div class="grid wardrobe-grid">${rows.slice(page * 8, page * 8 + 8).map((i) => `<button class="tile ${selected(i) ? "selected" : ""}" data-a="wear:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${selected(i) ? "✓ いま つかっている" : "つかう"}</small></button>`).join("") || "<p>まだ もっていないよ。</p>"}</div>${this.pagination(page, pages, "wardrobepage")}${category === "accessories" ? '<p><button data-a="removeaccessories">ぼうし・めがねを はずす</button></p>' : ""}`,
+      `<div class="row spread panel-heading"><div><h2>きせかえ・かべ・ゆか</h2><p>もっているものから えらべるよ。</p></div><button data-a="room">おへやへ</button></div><div class="tabs">${categories.map(([id, name]) => `<button class="${id === category ? "active" : ""}" data-a="wardrobecat:${id}">${name}</button>`).join("")}</div><div class="grid wardrobe-grid room-item-grid">${rows.slice(page * 6, page * 6 + 6).map((i) => `<button class="tile ${selected(i) ? "selected" : ""}" data-a="wear:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${selected(i) ? "✓ いま つかっている" : "つかう"}</small></button>`).join("") || "<p>まだ もっていないよ。</p>"}</div>${pages > 1 ? this.pagination(page, pages, "wardrobepage") : ""}${category === "accessories" ? '<p><button data-a="removeaccessories">ぼうし・めがねを はずす</button></p>' : ""}`,
       "wide child-grid-panel wardrobe-panel",
     );
   }
@@ -960,58 +998,9 @@ class Game {
     await this.commit();
     this.room();
   }
-  display(category = this.displayCategory || "fish", page = 0) {
-    const fish = D.FISH.filter((f) => this.s.fishing.fishBook[f.id]),
-      dinos = D.DINOS.filter((d) => this.s.dinosaurs.fossilBook[d.id]?.completed),
-      trophies = Object.keys(this.s.inventory.specialItems)
-        .filter(
-          (id) =>
-            id.startsWith("trophy_") ||
-            id.startsWith("subject_") ||
-            id.endsWith("master"),
-        )
-        .map((id) => ({ id, name: this.specialName(id) })),
-      definitions = {
-        fish: {
-          title: "すいそう",
-          max: 5,
-          key: "aquariumFish",
-          rows: fish,
-          visual: (x) => this.icon(x),
-          empty: "さかなを つると ここから えらべるよ。",
-          ready: !!this.s.inventory.specialItems.aquarium_small,
-        },
-        dinosaurs: {
-          title: "きょうりゅうふぃぎゅあ",
-          max: 3,
-          key: "dinosaurFigures",
-          rows: dinos,
-          visual: (x) => this.icon(x),
-          empty: "きょうりゅうを ふくげんすると えらべるよ。",
-          ready: true,
-        },
-        trophies: {
-          title: "とろふぃー・きねんひん",
-          max: 3,
-          key: "trophies",
-          rows: trophies,
-          visual: () => '<span class="trophy-preview">🏆</span>',
-          empty: "できたことを ふやすと かざれるよ。",
-          ready: true,
-        },
-      };
-    if (!definitions[category]) category = "fish";
-    const info = definitions[category],
-      pages = Math.max(1, Math.ceil(info.rows.length / 8));
-    page = Number.isInteger(Number(page)) ? Number(page) : 0;
-    page = Math.max(0, Math.min(pages - 1, page));
-    this.displayCategory = category;
-    this.displayPage = page;
-    const selected = this.s.room[info.key];
-    this.panel(
-      `<div class="row spread panel-heading"><div><h2>おへやに かざる</h2><p>${info.title}：${selected.length} / ${info.max}</p></div><button data-a="room">おへやへ</button></div><div class="tabs"><button class="${category === "fish" ? "active" : ""}" data-a="displaycat:fish">すいそう</button><button class="${category === "dinosaurs" ? "active" : ""}" data-a="displaycat:dinosaurs">きょうりゅう</button><button class="${category === "trophies" ? "active" : ""}" data-a="displaycat:trophies">とろふぃー</button></div>${!info.ready ? '<p class="empty-state">さかなを 5しゅるい みつけると、すいそうが つかえるよ。</p>' : `<div class="grid display-grid">${info.rows.slice(page * 8, page * 8 + 8).map((x) => `<button class="tile ${selected.includes(x.id) ? "selected" : ""}" data-a="toggledecor:${info.key}:${x.id}">${info.visual(x)}<span class="name">${E(x.name)}</span><small>${selected.includes(x.id) ? "✓ かざっている" : "かざす"}</small></button>`).join("") || `<p>${info.empty}</p>`}</div>${info.rows.length ? this.pagination(page, pages, "displaypage") : ""}`}<p><button data-a="memories">しゃしんは おもいでから</button></p>`,
-      "wide child-grid-panel display-panel",
-    );
+  display() {
+    this.room();
+    this.toast("これくしょんを かざる そうさは いったん おやすみ。へやは かぐだけで かんたんにしたよ。");
   }
   specialName(id) {
     if (id.startsWith("trophy_cup_")) {
@@ -1621,6 +1610,9 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "mansion":
         this.mansion();
         break;
+      case "mansionpage":
+        this.mansion(+b);
+        break;
       case "room":
         this.room();
         break;
@@ -1793,38 +1785,17 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "decorate":
         this.decorate();
         break;
-      case "pickfurniture":
-        if (!D.ITEMS.some((i) => i.id === b && i.type === "furniture"))
-          throw Error("かぐが みつからないよ");
-        if (R.availableFurnitureCount(this.s, b) < 1)
-          throw Error("そのかぐは ぜんぶ おへやに おいてあるよ");
-        this.decorateItem = b;
-        this.decorate();
+      case "decorateslot":
+        this.decorate(+b, 0);
+        break;
+      case "decoratepage":
+        this.decorate(this.decorateSlot, +b);
+        break;
+      case "placeitem":
+        await this.placeItem(+b, c);
         break;
       case "furniture":
-        if (this.roomFriend) {
-          this.world.hero?.setState(["sit", "read", "type"][+b % 3]);
-          this.toast("おへやで くつろいでいるよ");
-        } else {
-          const item = D.ITEMS.find((i) => i.id === this.s.room.slots[b]);
-          if (item) {
-            this.world.hero?.setState(
-              item.shape === 3
-                ? "read"
-                : item.shape === 8
-                  ? "type"
-                  : item.shape === 4
-                    ? "sleep"
-                    : "sit",
-            );
-            R.metric(this.s, "room");
-            this.toast(item.name + "で ひとやすみ");
-            await this.commit();
-          } else this.decorate();
-        }
-        break;
-      case "place":
-        await this.place(+b);
+        if (!this.roomFriend) this.decorate(+b, 0);
         break;
       case "clearslot":
         if (!/^[0-5]$/.test(String(b)))
@@ -1833,22 +1804,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         await this.commit();
         this.room();
         this.decorate();
-        break;
-      case "clearroom":
-        this.say(
-          "ぜんぶ かたづける？",
-          "おへやの かぐを ぜんぶ しまうよ。かぐは なくならないよ。",
-          [
-            ["ぜんぶ かたづける", "clearroomconfirm"],
-            ["やめる", "closedialog"],
-          ],
-        );
-        break;
-      case "clearroomconfirm":
-        this.s.room.slots = {};
-        await this.commit();
-        this.room();
-        this.decorate();
+        this.toast("かぐを かたづけたよ");
         break;
       case "mirror":
         this.create(this.s.meta.slotId, true);
@@ -1875,37 +1831,11 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         this.wardrobe(this.wardrobeCategory, this.wardrobePage);
         break;
       case "display":
-        this.display(b || "fish", 0);
-        break;
       case "displaycat":
-        this.display(b, 0);
-        break;
       case "displaypage":
-        this.display(this.displayCategory, +b);
+      case "toggledecor":
+        this.display();
         break;
-      case "toggledecor": {
-        const list = this.s.room[b],
-          max = b === "aquariumFish" ? 5 : 3,
-          allowed =
-            b === "aquariumFish"
-              ? !!this.s.inventory.specialItems.aquarium_small &&
-                !!this.s.fishing.fishBook[c]
-              : b === "dinosaurFigures"
-                ? !!this.s.dinosaurs.fossilBook[c]?.completed
-                : b === "trophies"
-                  ? !!this.s.inventory.specialItems[c]
-                  : false;
-        if (!Array.isArray(list) || !allowed)
-          throw Error("かざせない あいてむだよ");
-        if (list.includes(c)) this.s.room[b] = list.filter((x) => x !== c);
-        else {
-          if (list.length >= max) throw Error(`${max}こまで かざせるよ`);
-          list.push(c);
-        }
-        await this.commit();
-        this.display(this.displayCategory, this.displayPage);
-        break;
-      }
       case "collection":
         this.collection();
         break;

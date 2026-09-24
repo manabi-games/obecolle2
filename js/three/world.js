@@ -654,13 +654,26 @@ export class World {
     this.target.set(0, 1.1, 5);
   }
   room(s, friendId) {
-    this.box(
-      ITEMS.find((i) => i.id === s.room.floor)?.color || "#d9bd95",
-      [9, 0.2, 8],
-      [0, -0.15, 0],
-    );
-    const wall =
-      ITEMS.find((i) => i.id === s.room.wallpaper)?.color || "#d8e3c6";
+    const friend = friendId
+        ? ACTIVE_FRIENDS.find((f) => f.id === friendId)
+        : null,
+      friendIndex = friend ? Math.max(0, ACTIVE_FRIENDS.findIndex((f) => f.id === friendId)) : 0,
+      friendWalls = [
+        "#dcebd5", "#d8e6ef", "#f0dce4", "#f1e5c9", "#dce8df",
+        "#e5def0", "#f2e0cf", "#d9e7e7", "#e8dfd2", "#eee4c9",
+      ],
+      friendFloors = [
+        "#d6bd95", "#c9b998", "#d7b9a4", "#d4c49c", "#c9bea7",
+        "#c9b6a4", "#d5c0a1", "#c5b79f", "#ccb89e", "#d8c29d",
+      ],
+      floorColor = friend
+        ? friendFloors[friendIndex % friendFloors.length]
+        : ITEMS.find((i) => i.id === s.room.floor)?.color || "#d9bd95",
+      wall = friend
+        ? friendWalls[friendIndex % friendWalls.length]
+        : ITEMS.find((i) => i.id === s.room.wallpaper)?.color || "#d8e3c6";
+
+    this.box(floorColor, [9, 0.2, 8], [0, -0.15, 0]);
     this.box(wall, [9, 4, 0.15], [0, 2, -4]);
     this.box(wall, [0.15, 4, 8], [-4.5, 2, 0]);
     this.box("#93ccd9", [2, 1.7, 0.1], [1.8, 2.4, -3.85]);
@@ -668,38 +681,39 @@ export class World {
     this.box("#f8eccf", [2.1, 0.12, 0.15], [1.8, 2.4, -3.72]);
     const curtain = this.box("#f5e9c9", [0.35, 2.1, 0.2], [3, 2.4, -3.5]);
     this.ambient.push({ obj: curtain, type: "curtain", phase: 0 });
-    const slots = friendId
-      ? Object.fromEntries(
-          (s.friends[friendId].gifts.length
-            ? s.friends[friendId].gifts
-            : ["furniture_0", "furniture_3", "furniture_8"]
-          )
-            .slice(-6)
-            .map((id, i) => [i, id]),
-        )
-      : s.room.slots;
-    const positions = [
-      [-3, -2],
-      [0, -3],
-      [3, -2],
-      [-3, 1],
-      [0, 1],
-      [3, 1],
-    ];
+
+    const gifts = friendId ? s.friends[friendId]?.gifts || [] : [],
+      defaults = friendId
+        ? [
+            `furniture_${friendIndex % 10}`,
+            `furniture_${(friendIndex + 3) % 10}`,
+            `furniture_${(friendIndex + 6) % 10}`,
+          ]
+        : [],
+      slots = friendId
+        ? Object.fromEntries((gifts.length ? gifts : defaults).slice(-6).map((id, i) => [i, id]))
+        : s.room.slots,
+      positions = [
+        [-3, -2], [0, -3], [3, -2], [-3, 1], [0, 1], [3, 1],
+      ];
+
     for (let i = 0; i < 6; i++) {
       const [x, z] = positions[i],
-        item = ITEMS.find((x) => x.id === slots[i]);
+        item = ITEMS.find((row) => row.id === slots[i]);
       if (item) {
         const m = this.add(furniture(item), x, 0, z);
-        this.interact(m, "furniture:" + i, item.name, 1.6);
-        this.labels.at(-1).strictHover = true;
-      } else {
+        if (!friendId) {
+          this.interact(m, "furniture:" + i, item.name, 1.6);
+          this.labels.at(-1).strictHover = true;
+        }
+      } else if (!friendId) {
         const m = this.box("#c4ac85", [1.7, 0.03, 1.2], [x, 0.02, z]);
-        this.interact(m, "furniture:" + i, "＋ おく", 0.4);
+        this.interact(m, "furniture:" + i, "＋ かぐを おく", 0.4);
         this.labels.at(-1).strictHover = true;
       }
     }
-    const f = FRIENDS.find((f) => f.id === friendId);
+
+    const f = friend;
     this.hero = this.human(
       f
         ? { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit }
@@ -712,59 +726,17 @@ export class World {
       this.hero.userData.ai = true;
       this.hero.userData.origin = this.hero.position.clone();
       this.hero.userData.needs = s.friends[friendId].needs;
-    }
-    if (friendId) {
       this.interact(this.hero, "friend:" + friendId, f.name, 2.2);
       this.labels.at(-1).strictHover = true;
+      this.box(COLORS[friendIndex % COLORS.length], [1.5, 0.8, 0.08], [-1.8, 2.55, -3.82]);
     }
+
     this.box("#d2e9e1", [1, 0.9, 0.4], [3.8, 0.85, 2.8]);
     if (!friendId) {
       const mirror = this.box("#b9dfe0", [0.1, 1.3, 0.8], [-4.25, 1.3, 2.5]);
       this.interact(mirror, "mirror", "かがみ", 1);
       this.labels.at(-1).strictHover = true;
     }
-    if (s.inventory.specialItems.aquarium_small) {
-      this.box("#90cdd1", [1.5, 0.8, 0.7], [2, 1.2, -3.2]);
-      s.room.aquariumFish.slice(0, 5).forEach((id, i) => {
-        const fish = this.add(
-          creatureModel(
-            FISH.find((f) => f.id === id),
-            0.35,
-          ),
-          1.5 + i * 0.2,
-          1.2,
-          -2.8,
-        );
-        this.creatures.push(fish);
-      });
-    }
-    s.room.dinosaurFigures.slice(0, 3).forEach((id, i) => {
-      this.creatures.push(
-        this.add(
-          creatureModel(
-            DINOS.find((d) => d.id === id),
-            0.3,
-          ),
-          -3 + i * 0.6,
-          1.7,
-          -3.5,
-        ),
-      );
-    });
-    s.room.trophies
-      .slice(0, 3)
-      .forEach((id, i) =>
-        this.add(
-          mesh("cone", "#efc358", [0.14, 0.35, 0.14]),
-          -0.8 + i * 0.4,
-          1.6,
-          -3.5,
-        ),
-      );
-    s.room.photos.slice(0, 3).forEach((id, i) => {
-      this.box("#f5dfb1", [0.6, 0.5, 0.12], [-2 + i * 0.8, 2.7, -3.8]);
-      this.sphere("#c9dba3", [0.22, 0.16, 0.08], [-2 + i * 0.8, 2.7, -3.7]);
-    });
   }
   pick(e) {
     if (!this.interactionsEnabled) return null;

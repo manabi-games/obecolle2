@@ -5,7 +5,9 @@ export function resetTransientState(target) {
   target.pendingImport = null;
   target.roomFriend = null;
   target.decorateSlot = null;
+  target.decoratePage = 0;
   target.decorateItem = null;
+  target.mansionPage = 0;
   target.creatorPage = 0;
   target.typingPage = 0;
   target.learningPage = 0;

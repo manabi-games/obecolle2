@@ -2381,3 +2381,155 @@ body.island-interactive .world-label { font-size: 16px; }
   .typing-play-layout { grid-template-columns: 1fr; }
   .excavation-board { display: none; }
 }
+
+
+/* v1.7 room rebuild: furniture-first, two-step editing, no collection clutter */
+.room-bar {
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 18px;
+  width: min(900px, calc(100vw - 30px));
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  background: #fff7e6ee;
+  border: 3px solid #fffbed;
+  border-radius: 24px;
+  padding: 9px 11px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+.room-owner {
+  min-width: 130px;
+  text-align: center;
+  font-weight: 900;
+  color: #3d756b;
+}
+.mansion-panel,
+.room-edit-panel,
+.gift-panel,
+.wardrobe-panel {
+  height: calc(100vh - 82px) !important;
+  max-height: calc(100vh - 82px) !important;
+  overflow: hidden !important;
+}
+.mansion-room-grid,
+.room-location-grid,
+.room-item-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden !important;
+}
+.mansion-room-card,
+.room-location-card,
+.room-item-card {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 5px;
+  padding: 9px;
+}
+.mansion-room-card .friend-avatar { transform: scale(1.08); transform-origin: center; }
+.mansion-room-card strong,
+.room-location-card strong { font-size: 20px; }
+.self-room-card { background: #edf7df; border-color: #b7d3a4; }
+.room-location-preview {
+  height: min(12vh, 86px);
+  display: grid;
+  place-items: center;
+}
+.room-location-preview .item-preview { margin: 0; }
+.room-edit-current {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 4px 0 9px;
+  padding: 7px 12px;
+  border-radius: 15px;
+  background: #f1e5c9;
+}
+.room-edit-current span { color: #778076; }
+.room-edit-current strong { color: #3d7469; font-size: 21px; }
+.room-item-card .item-preview {
+  width: 82px;
+  height: 66px;
+  margin: 0 auto 3px;
+}
+.room-edit-actions {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 7px;
+}
+.empty-room-message {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  color: #6d786f;
+  font-size: 20px;
+}
+.gift-grid,
+.wardrobe-grid {
+  overflow: hidden !important;
+}
+.room-edit-panel .pagination,
+.mansion-panel .pagination,
+.gift-panel .pagination,
+.wardrobe-panel .pagination {
+  margin-top: 6px !important;
+  flex: 0 0 auto;
+}
+/* Old dense room editor widgets are intentionally retired. */
+.furniture-picker,
+.room-slot-map,
+.display-grid { display: none !important; }
+
+@media (max-height: 700px) {
+  .mansion-panel,
+  .room-edit-panel,
+  .gift-panel,
+  .wardrobe-panel {
+    height: calc(100vh - 66px) !important;
+    max-height: calc(100vh - 66px) !important;
+    padding: 9px 15px !important;
+  }
+  .mansion-room-grid,
+  .room-location-grid,
+  .room-item-grid { gap: 7px; }
+  .mansion-room-card,
+  .room-location-card,
+  .room-item-card { padding: 5px; gap: 2px; }
+  .mansion-room-card strong,
+  .room-location-card strong { font-size: 16px; }
+  .mansion-room-card small,
+  .room-location-card small,
+  .room-item-card small { font-size: 12px; }
+  .mansion-room-card .friend-avatar { transform: scale(.82); }
+  .room-location-preview { height: 54px; }
+  .room-item-card .item-preview { width: 62px; height: 50px; }
+  .room-item-card .name { font-size: 14px; }
+  .room-edit-current { margin: 2px 0 5px; padding: 4px 8px; }
+  .room-edit-current strong { font-size: 17px; }
+  .room-edit-actions { margin-top: 4px; }
+  .room-edit-actions button { padding: 6px 10px; font-size: 15px; }
+  .room-bar { bottom: 8px; padding: 6px 8px; }
+  .room-bar button { padding: 7px 10px; font-size: 15px; }
+  .room-owner { min-width: 105px; font-size: 15px; }
+}
+@media (max-width: 850px) {
+  .mansion-room-grid,
+  .room-location-grid,
+  .room-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .room-bar { flex-wrap: wrap; }
+}
