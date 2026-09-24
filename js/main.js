@@ -219,7 +219,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.5.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.6.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -536,22 +536,26 @@ class Game {
     this.syncInteractionState();
     if (deferred) this.toast(deferred);
   }
-  async friend(id) {
+  async friend(id, advance = false) {
     const data = D.ACTIVE_FRIENDS.find((f) => f.id === id);
     if (!data || !this.s.friends[id]) return;
-    R.talk(this.s, id);
-    await this.commit();
+    if (!advance) {
+      R.talk(this.s, id);
+      await this.commit();
+    }
     this.roomFriend = id;
     this.world.hero?.setState("wave");
-    const f = this.s.friends[id],
-      lines = data.lines?.length ? data.lines : ["こんにちは！"],
-      line = lines[(f.affinity + this.s.meta.playCount) % lines.length];
+    const lines = data.lines?.length ? data.lines : ["こんにちは！"],
+      hadLine = Object.prototype.hasOwnProperty.call(this.friendLineIndex, id),
+      current = hadLine ? Number(this.friendLineIndex[id]) : -1,
+      lineIndex = (current + 1) % lines.length;
+    this.friendLineIndex[id] = lineIndex;
     this.say(
       data.name,
-      `${line}${f.affinity >= 40 ? "\n" + data.favoriteActivity + "が すきなんだ。" : ""}`,
+      lines[lineIndex],
       [
+        ["もうちょっと はなす", "friendmore:" + id],
         ["おねがい ある？", "request:" + id],
-        ["たいぴんぐはっくつへ", "typing"],
         ["またね", "closedialog"],
       ],
     );
@@ -675,31 +679,41 @@ class Game {
   }
   school() {
     this.setScene("school");
+    const subjects = D.SUBJECTS.filter((x) => D.CORE_SUBJECT_IDS.includes(x.id));
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>まなびがっこう</h2><p>すきな がくしゅうを えらぼう。1かい 5もんだよ。</p></div><button data-a="island">まちへ</button></div><div class="grid school-grid">${D.SUBJECTS.map((x) => {
+      `<div class="row spread panel-heading"><div><h2>まなびがっこう</h2><p>3つから えらぼう。</p></div><button data-a="island">まちへ</button></div><div class="grid school-grid core-school-grid">${subjects.map((x) => {
         const learned = Object.values(this.s.learning[x.id].levels).reduce(
           (sum, row) => sum + (row.stars || 0),
           0,
         );
-        return `<button class="tile" data-a="levels:${x.id}"><span class="icon">${x.icon}</span><strong>${x.name}</strong><small>いま Lv ${Math.min(x.maxLevel, this.s.learning[x.id].unlocked)} ／ ${x.maxLevel}</small><small>★ ${learned}</small></button>`;
+        return `<button class="tile core-subject" data-a="levels:${x.id}"><span class="icon">${x.icon}</span><strong>${x.name}</strong><small>Lv ${Math.min(x.maxLevel, this.s.learning[x.id].unlocked)} / ${x.maxLevel}</small><small>★ ${learned}</small></button>`;
       }).join("")}</div>`,
       "wide child-grid-panel school-panel",
     );
   }
-  levels(subject) {
+  levels(subject, page = null) {
     this.closeDialog();
     const info = D.SUBJECTS.find((x) => x.id === subject);
-    if (!info || !this.s.learning[subject])
+    if (!info || !D.CORE_SUBJECT_IDS.includes(subject) || !this.s.learning[subject])
       throw Error("がくしゅうが みつからないよ");
     const b = this.s.learning[subject],
-      unlocked = Math.max(1, Math.min(info.maxLevel, b.unlocked));
+      unlocked = Math.max(1, Math.min(info.maxLevel, b.unlocked)),
+      pageSize = 6,
+      pages = Math.ceil(info.maxLevel / pageSize);
+    if (page === null || page === undefined)
+      page = Math.floor((unlocked - 1) / pageSize);
+    page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
+    this.learningPage = page;
+    const levels = Array.from(
+      { length: Math.min(pageSize, info.maxLevel - page * pageSize) },
+      (_, i) => page * pageSize + i + 1,
+    );
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>${info.name}</h2><p>いま えらべるのは Lv ${unlocked}まで。</p></div><button data-a="school">がくしゅうを えらぶ</button></div><div class="grid level-grid">${Array.from({ length: info.maxLevel }, (_, i) => {
-        const lv = i + 1,
-          stars = b.levels[lv]?.stars || 0,
-          title = LEARNING_STEPS[subject]?.[i] || "";
-        return `<button data-a="quiz:${subject}:${lv}" ${lv > unlocked ? "disabled" : ""}><strong>Lv ${lv}</strong>${title ? `<small class="step-title">${title}</small>` : ""}<small>${"★".repeat(stars)}${"☆".repeat(3 - stars)}</small><small>${lv > unlocked ? "🔒 まえのLvを くりあしよう" : stars ? "もういちど" : lv === unlocked ? "いま ここ！" : "ちょうせん"}</small></button>`;
-      }).join("")}</div><p class="muted">★は いちばん よかった きろく。さいごのLvを はじめて くりあすると きねんひんも もらえるよ。</p>`,
+      `<div class="row spread panel-heading"><div><h2>${info.name}</h2><p>いま Lv ${unlocked}。6こずつ みられるよ。</p></div><button data-a="school">がくしゅうを えらぶ</button></div><div class="grid level-grid compact-level-grid">${levels.map((lv) => {
+        const stars = b.levels[lv]?.stars || 0,
+          title = LEARNING_STEPS[subject]?.[lv - 1] || "";
+        return `<button data-a="quiz:${subject}:${lv}" ${lv > unlocked ? "disabled" : ""}><strong>Lv ${lv}</strong>${title ? `<small class="step-title">${title}</small>` : ""}<small>${"★".repeat(stars)}${"☆".repeat(3 - stars)}</small><small>${lv > unlocked ? "🔒 まだ" : stars ? "もういちど" : lv === unlocked ? "▶ いま ここ" : "ちょうせん"}</small></button>`;
+      }).join("")}</div>${pages > 1 ? this.pagination(page, pages, `levelpage:${subject}`) : ""}`,
       "wide child-grid-panel levels-panel",
     );
   }
@@ -718,19 +732,13 @@ class Game {
       { length: Math.min(pageSize, maxLevel - page * pageSize) },
       (_, i) => page * pageSize + i + 1,
     );
-    const masterCleared = t.completedLevels.includes(30);
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>⛏️ たいぴんぐはっくつじょ</h2><p>ことばを うって いわを くだこう。1Lvにつき きょうりゅう1しゅるい！</p></div><button data-a="island">まちへ</button></div>
-      <div class="row spread"><span class="pill">はっくつ Lv ${unlocked} / 30</span><span class="pill">🦖 ${this.s.dinosaurs.completedCount} / 30</span></div>
-      <div class="typing-goal"><strong>${masterCleared ? "30しゅるい はっけん！" : `つぎは Lv ${unlocked} の ちそう`}</strong><small>${masterCleared ? "すきな ちそうを もういちど ほれるよ。" : "まだ なにが ねむっているかは ひみつ。いわを くだいて たしかめよう！"}</small><button class="primary" data-a="typelevel:basic:${unlocked}">${masterCleared ? "Lv30を もういちど" : `Lv ${unlocked}を はっくつ！`}</button></div>
-      <div class="typing-levels dig-levels">${levels.map((lv) => {
+      `<div class="row spread panel-heading"><div><h2>⛏️ たいぴんぐはっくつ</h2><p>いまの ちそう：Lv ${unlocked} / 30</p></div><div class="row"><span class="pill">🦖 ${this.s.dinosaurs.completedCount} / 30</span><button data-a="island">まちへ</button></div></div><div class="dig-current"><div><small>つぎの はっくつ</small><strong>ちそう Lv ${unlocked}</strong><span>5つの ことばで いわを くだこう</span></div><button class="primary" data-a="typelevel:basic:${unlocked}">はっくつする！</button></div><div class="grid dig-levels compact-dig-levels">${levels.map((lv) => {
         const dino = D.DINOS[lv - 1],
           found = !!this.s.dinosaurs.fossilBook[dino?.id]?.completed,
           locked = lv > unlocked;
-        return `<button data-a="typelevel:basic:${lv}" ${locked ? "disabled" : ""}><strong>Lv ${lv}</strong><small>${found ? "🦖 " + E(dino.name) : locked ? "🔒 まだ いけない" : "？？？ ねむっている"}</small><small>${t.completedLevels.includes(lv) ? "✓ はっくつずみ" : lv === unlocked ? "いま ここ！" : "もういちど"}</small></button>`;
-      }).join("")}</div>
-      ${this.pagination(page, pages, "typingpage")}
-      <div class="row collection-footer"><button data-a="book:dinosaurs">🦖 きょうりゅうずかん</button></div>`,
+        return `<button data-a="typelevel:basic:${lv}" ${locked ? "disabled" : ""}><strong>Lv ${lv}</strong><small>${found ? "🦖 " + E(dino.name) : locked ? "🔒 まだ" : "▶ いま ここ"}</small></button>`;
+      }).join("")}</div>${this.pagination(page, pages, "typingpage")}<div class="row collection-footer"><button data-a="book:dinosaurs">きょうりゅうずかん</button></div>`,
       "wide child-grid-panel typing-lab-panel",
     );
   }
@@ -826,7 +834,7 @@ class Game {
             : i.type === category,
       )
       .filter((i) => this.featuredShopItem(i)),
-      pages = Math.max(1, Math.ceil(rows.length / 8)),
+      pages = Math.max(1, Math.ceil(rows.length / 6)),
       owned = (i) =>
         i.type === "furniture"
           ? false
@@ -844,7 +852,7 @@ class Game {
         ["accessories", "ぼうし・めがね"],
         ["interior", "かべ・ゆか"],
       ].map(([id, n]) => `<button class="${id === category ? "active" : ""}" data-a="shopcat:${id}">${n}</button>`).join("")}</div>
-      <div class="grid shop-grid">${rows.slice(page * 8, page * 8 + 8).map((i) => {
+      <div class="grid shop-grid">${rows.slice(page * 6, page * 6 + 6).map((i) => {
         const requirement = D.itemRequirement(i.id, this.s),
           hasIt = owned(i),
           locked =
@@ -853,7 +861,7 @@ class Game {
             this.s.progression.coins < i.price ||
             hasIt;
         return `<div class="tile shop-tile"><div class="shop-preview">${itemPreview(i)}</div><span class="name">${E(i.name)}</span><small>${i.price} こいん</small><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
-      }).join("")}</div>${this.pagination(page, pages, "shoppage")}`,
+      }).join("")}</div>${pages > 1 ? this.pagination(page, pages, "shoppage") : ""}`,
       "wide child-grid-panel shop-panel",
     );
   }
@@ -1622,6 +1630,9 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "friend":
         await this.friend(b);
         break;
+      case "friendmore":
+        await this.friend(b, true);
+        break;
       case "request":
         await this.request(b);
         break;
@@ -1666,6 +1677,9 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "levels":
         this.levels(b);
         break;
+      case "levelpage":
+        this.levels(b, +c);
+        break;
       case "quiz":
         this.startQuiz(b, +c);
         break;
@@ -1686,6 +1700,9 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         break;
       case "speakquestion":
         this.speakQuestion();
+        break;
+      case "speakoption":
+        this.speakOption(+b);
         break;
       case "fishing":
         this.fishing();

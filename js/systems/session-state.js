@@ -8,6 +8,8 @@ export function resetTransientState(target) {
   target.decorateItem = null;
   target.creatorPage = 0;
   target.typingPage = 0;
+  target.learningPage = 0;
+  target.friendLineIndex = {};
   target.arenaCup = null;
   target.arenaCreature = null;
   target.arenaPickPage = 0;

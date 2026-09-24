@@ -340,31 +340,31 @@ function englishQuestion(level, index) {
     const group = EN_GROUPS[level - 1];
     const upper = group[index % group.length];
     return choice(
-      `「${upper}」の こもじは？`,
+      `「${upper}」の こもじは どれ？`,
       upper.toLowerCase(),
       shuffle([...group].filter((x) => x !== upper).map((x) => x.toLowerCase())).slice(0, 3),
       `${upper} と ${upper.toLowerCase()} は おなじ あるふぁべっと。`,
-      { speak: upper, speakLang: "en-US" },
+      { optionSpeak: true, speakLang: "en-US" },
     );
   }
   if (level === 5) {
     const upper = String.fromCharCode(65 + (index * 5) % 26);
     return choice(
-      `「${upper.toLowerCase()}」と おなじ あるふぁべっとは？`,
+      `「${upper.toLowerCase()}」と おなじ あるふぁべっとは どれ？`,
       upper,
       [1, 4, 9].map((v) => String.fromCharCode(65 + ((upper.charCodeAt(0) - 65 + v) % 26))),
       `${upper.toLowerCase()} と ${upper} は おなじだよ。`,
-      { speak: upper, speakLang: "en-US" },
+      { optionSpeak: true, speakLang: "en-US" },
     );
   }
   const bank = level === 6 ? EN_COLORS_NUMBERS : level === 7 ? EN_WORDS : EN_PHRASES;
   const row = bank[index % bank.length];
   return choice(
-    `「${row[0]}」を えいごで？`,
+    `${row[0]} を えいごで いうと どれ？`,
     row[1],
     shuffle(bank.filter((x) => x !== row).map((x) => x[1])).slice(0, 3),
-    `${row[0]} = ${row[1]}`,
-    { speak: row[1], speakLang: "en-US" },
+    `${row[0]} は ${row[1]} だよ。`,
+    { optionSpeak: true, speakLang: "en-US" },
   );
 }
 

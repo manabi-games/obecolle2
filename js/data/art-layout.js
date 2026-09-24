@@ -34,7 +34,13 @@ const dinoBounds = [
 ];
 export function artLayout(id) {
   if (id.startsWith("dino_")) {
-    const [x, y, w, h] = dinoBounds[Number(id.slice(5)) - 1];
+    const [rawX, rawY, rawW, rawH] = dinoBounds[Number(id.slice(5)) - 1];
+    const insetX = Math.max(10, Math.round(rawW * 0.055)),
+      insetY = Math.max(5, Math.round(rawH * 0.035)),
+      x = rawX + insetX,
+      y = rawY + insetY,
+      w = rawW - insetX * 2,
+      h = rawH - insetY * 2;
     return {
       source: "assets/illustrations/dinosaurs-atlas.png",
       x,

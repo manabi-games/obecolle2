@@ -51,9 +51,16 @@ export const games = {
     a.answered = false;
     this.audio.stopSpeech?.();
     this.world.set("quiz", this.s, { creatureId: q.creature });
+    const answers = q.options
+      .map((v, i) =>
+        q.optionSpeak
+          ? `<div class="answer-option"><button class="answer-select" data-a="answer:${i}">${E(v)}</button><button class="answer-sound" data-a="speakoption:${i}" aria-label="${E(v)}の はつおんを きく">🔊</button></div>`
+          : `<button class="answer-select" data-a="answer:${i}">${E(v)}</button>`,
+      )
+      .join("");
     this.panel(
-      `<div class="row spread"><span class="pill">${a.callback ? "ありーな" : SUBJECTS.find((x) => x.id === a.subject).name + " Lv" + a.level}</span><b>${a.index + 1} / 5</b><button data-a="pause">Ⅱ</button></div><div class="progress-track"><div style="width:${a.index * 20}%"></div></div><div class="question">${E(q.text)}</div>${this.questionVisual(q)}${q.speak ? '<div class="voice-row"><button class="voice-button" data-a="speakquestion">🔊 こえを きく</button><small>なんどでも きけるよ</small></div>' : ""}<div class="answers">${q.options.map((v, i) => `<button data-a="answer:${i}">${E(v)}</button>`).join("")}</div><div id="feedback" class="feedback" aria-live="polite"></div>`,
-      "small",
+      `<div class="quiz-top"><span class="pill">${a.callback ? "ちゃれんじ" : SUBJECTS.find((x) => x.id === a.subject).name + " Lv" + a.level}</span><b>${a.index + 1} / 5</b><button data-a="pause">Ⅱ</button></div><div class="progress-track"><div style="width:${a.index * 20}%"></div></div><div class="question">${E(q.text)}</div>${this.questionVisual(q)}${q.speak ? '<div class="voice-row"><button class="voice-button" data-a="speakquestion">🔊 こえを きく</button></div>' : ""}<div class="answers ${q.optionSpeak ? "audio-answers" : ""}">${answers}</div><div id="feedback" class="feedback" aria-live="polite"></div>`,
+      "small quiz-screen-panel",
     );
   },
   questionVisual(q) {
@@ -84,6 +91,17 @@ export const games = {
     if (!this.audio.speak(q.speak, q.speakLang || "en-US"))
       this.toast("この ぶらうざでは こえを だせなかったよ");
   },
+  speakOption(index) {
+    const a = this.activity,
+      q = a?.kind === "quiz" ? a.questions[a.index] : null;
+    if (!q?.optionSpeak || !Number.isInteger(index) || !q.options[index]) return;
+    const spoken =
+      a.subject === "english" && a.level <= 5
+        ? String(q.options[index]).toUpperCase()
+        : q.options[index];
+    if (!this.audio.speak(spoken, q.speakLang || "en-US", { rate: 0.82 }))
+      this.toast("この ぶらうざでは こえを だせなかったよ");
+  },
   async answer(index) {
     const a = this.activity;
     if (a?.kind !== "quiz" || a.answered) return;
@@ -97,12 +115,13 @@ export const games = {
       a.bestStreak = Math.max(a.bestStreak, a.streak);
     } else a.streak = 0;
     this.audio.effect(ok ? "correct" : "miss");
-    const buttons = [...document.querySelectorAll(".answers button")];
+    const buttons = [...document.querySelectorAll(".answers .answer-select")];
     buttons.forEach((button, i) => {
       button.disabled = true;
       if (q.options[i] === q.answer) button.classList.add("correct-answer");
       if (i === index && !ok) button.classList.add("wrong-answer");
     });
+    document.querySelectorAll(".answer-sound").forEach((button) => (button.disabled = true));
     const mark = document.createElement("div");
     mark.className = `answer-mark ${ok ? "correct" : "wrong"}`;
     mark.textContent = ok ? "○" : "×";
@@ -150,11 +169,13 @@ export const games = {
     this.world.set("typing", this.s, { mode, level });
     this.audio.setScene("typing");
     const words = typingWords(level),
+      targetDino = DINOS[Math.max(0, Math.min(DINOS.length - 1, level - 1))],
       a = (this.activity = {
         kind: "typing",
         mode,
         level,
         callback,
+        targetDino,
         words: [...words],
         engine: new TypingEngine(words[0]),
         wordIndex: 0,
@@ -164,17 +185,12 @@ export const games = {
         bestCombo: 0,
         elapsed: 0,
         started: false,
-        timeLimit: callback
-          ? 40
-          : mode === "challenge"
-            ? 30
-            : mode === "escape"
-              ? 60
-              : 0,
+        timeLimit: callback ? 40 : mode === "challenge" ? 30 : mode === "escape" ? 60 : 0,
       });
+    const rockPieces = Array.from({ length: 5 }, (_, i) => `<i class="rock-piece piece-${i}"></i>`).join("");
     this.panel(
-      `<div class="row spread"><h2>${callback ? "さいごの たいぴんぐ" : mode === "basic" ? `たいぴんぐはっくつ Lv ${level}` : modeInfo?.name || "たいぴんぐ"}</h2><button data-a="pause">Ⅱ</button></div><div class="row spread"><span id="type-progress">1 / 5</span><span id="type-time">${a.timeLimit ? a.timeLimit + "びょう" : "じかんせいげんなし"}</span><span id="type-combo">0 こんぼ</span></div><div class="typing-word" id="type-word"></div><div class="roman" id="type-roman"></div><div class="dig-typing-badge">⛏️ 5つのことばで いわを くだこう！</div><div class="feedback" id="type-feedback">きーぼーどで はじめよう</div><div class="progress-track"><div id="type-meter" style="width:0%"></div></div>${this.s.settings.keyboard ? '<div class="keyboard" id="keyboard"></div>' : ""}<p class="footnote">えいじきーでにゅうりょく・ひょうきゆれOK ／ Esc でひとやすみ</p>`,
-      "small",
+      `<div class="typing-play-head"><div><small>たいぴんぐはっくつ</small><strong>ちそう Lv ${level} / 30</strong></div><div class="typing-mini-stats"><span id="type-progress">1 / 5</span><span id="type-combo">0 こんぼ</span></div><button data-a="pause">Ⅱ</button></div><div class="typing-play-layout"><div class="excavation-board"><div class="fossil-secret">${targetDino ? this.icon(targetDino, true) : ""}</div><div class="rock-cover" id="rock-cover">${rockPieces}</div><div class="dig-step-label" id="dig-step-label">いわ 0 / 5</div></div><div class="typing-console"><div class="typing-word" id="type-word"></div><div class="roman" id="type-roman"></div><div class="feedback" id="type-feedback">きーぼーどで うってみよう</div><div class="progress-track"><div id="type-meter" style="width:0%"></div></div>${this.s.settings.keyboard ? '<div class="keyboard" id="keyboard"></div>' : ""}<small class="typing-hint">5つ うてたら はっくつ せいこう！</small></div></div>`,
+      "wide typing-play-panel",
     );
     this.renderTyping();
   },
@@ -203,6 +219,11 @@ export const games = {
         .join("<br>");
     document.querySelector("#type-meter").style.width =
       Math.min(100, a.wordIndex * 20) + "%";
+    const step = document.querySelector("#dig-step-label");
+    if (step) step.textContent = `いわ ${Math.min(5, a.wordIndex)} / 5`;
+    document.querySelectorAll(".rock-piece").forEach((piece, i) =>
+      piece.classList.toggle("cleared", i < a.wordIndex),
+    );
   },
   async typeKey(key) {
     const a = this.activity;

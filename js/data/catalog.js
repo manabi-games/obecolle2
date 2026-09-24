@@ -27,6 +27,7 @@ export const SUBJECTS = [
   icon,
   maxLevel: SUBJECT_LEVELS[id],
 }));
+export const CORE_SUBJECT_IDS = ["math", "japanese", "english"];
 export const FACILITIES = [
   ["mansion", "おべこれまんしょん", 1, 0, -8, "#f6c887"],
   ["school", "まなびがっこう", 1, 9, -6, "#ef987a"],
@@ -402,16 +403,16 @@ const FRIEND_VOICES = [
   { rate: 0.86, pitch: 1.38, voiceIndex: 0 },
 ];
 const FRIEND_LINES = [
-  ["おーい！ きょうも あそぼう！", "きょうりゅう、みつけに いこうよ！", "きのうより はやく うてるかな？"],
-  ["こんにちは。きょうは どこへ いく？", "ゆっくりでも ちゃんと すすんでるよ。", "かせきって ふしぎだね。"],
-  ["やっほー！ きょうも きたんだね！", "あたらしい きょうりゅう、みたいな！", "たいぴんぐ いっしょに がんばろう！"],
-  ["よし！ きょうも ちょうせんだ！", "こんぼ つづくと きもちいいよな！", "でっかい かせき みつけようぜ！"],
-  ["きょうは なにを みつける？", "ずかんが ふえると うれしいね。", "また おはなし しようね。"],
-  ["……きたね。", "ゆっくり あるくのも いいよ。", "つぎの ちそう、きになる。"],
-  ["おっ、みつけた！", "まちを あるくの たのしいね！", "はっくつの おてつだい するよ！"],
-  ["こんにちは！ こえ きこえた？", "きょうりゅうの なまえって おもしろいね。", "また あえたね！"],
-  ["よっ！ いいところに きたな！", "たいぴんぐ、しょうぶする？", "かせきを みつけたら おしえて！"],
-  ["わーい！ きょうも あえた！", "あたらしい はっけん あるかな？", "ずかん いっぱいに したいね！"],
+  ["おーい！ きょうも きたね！", "きょうの そら、なんか きれいじゃない？", "ぼく、あさごはん りんごだった！", "このまえ へんな かたちの くもを みたよ。", "まちを ぐるっと さんぽしようかな。", "また あえたら こえかけてね！"],
+  ["こんにちは。ぼく、ほんを よむのが すきなんだ。", "しずかな ところって おちつくよね。", "きょうは ちょっと ねむいかも。", "きのう おもしろい ほんを みつけたよ。", "あめの おとって なんか すき。", "ゆっくり はなすのも いいよね。"],
+  ["やっほー！ その ふく いいね！", "わたし いちごが だいすき！", "きょう なんか いいこと あった？", "おえかきすると じかん わすれちゃう。", "かわいい もの みつけたら おしえて！", "また あとで はなそうね！"],
+  ["よっ！ きょうも げんき？", "おれ、はしるの けっこう はやいんだぜ。", "おなか すいたなー。おにぎり たべたい。", "きょうは ぜったい いいひに なる！", "どっちが さきに ひろばまで いけるかな？", "じゃ、またな！"],
+  ["こんにちは。わすれもの してない？", "わたし、つくえが きれいだと うれしい。", "きょうは なんの べんきょう した？", "あしたの じゅんび、もう したよ。", "おちゃを のむと ほっとするね。", "こまったことが あったら いってね。"],
+  ["……こんにちは。", "ぼーっと くもを みるの、すき。", "きょうは ゆっくり したい きぶん。", "ねこって ずっと みてられるよね。", "しずかな ばしょ、みつけたんだ。", "……またね。"],
+  ["おっ！ ちょうど いいところに！", "さっき へんな むし みつけた！", "まちの すみっこって いがいと おもしろいよ。", "きょうの おやつ、なにかなー。", "ぼく、ひみつの ばしょを さがしてるんだ。", "また おもしろいもの みつけたら おしえる！"],
+  ["こんにちは！ ちゃんと こえ きこえた？", "わたし うたを きくのが すき。", "きょうは なんだか ごきげん！", "おはな みつけると ちょっと うれしいよね。", "おともだちが いると まちが にぎやかだね。", "また おしゃべり しよう！"],
+  ["よっ。きょうも きたか。", "おれ、からいもの ちょっと にがて。", "ゲームは まけると くやしいよな。", "このまえ すごい ゆめ みたんだ。", "ひるねって さいこうじゃない？", "じゃあな。また はなそうぜ。"],
+  ["わーい！ あえた！", "わたし、きいろが いちばん すき！", "きょう かわいい いし ひろったよ。", "ケーキなら いくらでも たべられそう。", "こんど みんなで あそびたいな。", "また すぐ はなしかけてね！"],
 ];
 for (let i = 0; i < FRIENDS.length; i++) {
   FRIENDS[i].voice = FRIEND_VOICES[i % FRIEND_VOICES.length];
@@ -422,6 +423,23 @@ for (let i = 0; i < FRIENDS.length; i++) {
       "また おはなし しようね。",
     ];
 }
+const ACTIVE_FRIEND_DETAILS = [
+  { personality: "げんき", favoriteActivity: "さんぽ", favoriteFood: "りんご", route: "initial", threshold: 0, strongSubject: "math" },
+  { personality: "ものしり", favoriteActivity: "どくしょ", favoriteFood: "ぱん", route: "learning", threshold: 3, strongSubject: "japanese" },
+  { personality: "おしゃれ", favoriteActivity: "おえかき", favoriteFood: "いちご", route: "typing", threshold: 150, strongSubject: "english" },
+  { personality: "ちょうせん", favoriteActivity: "かけっこ", favoriteFood: "おにぎり", route: "learning", threshold: 8, strongSubject: "math" },
+  { personality: "しっかり", favoriteActivity: "おかたづけ", favoriteFood: "おちゃ", route: "typing", threshold: 350, strongSubject: "japanese" },
+  { personality: "のんびり", favoriteActivity: "ひなたぼっこ", favoriteFood: "くっきー", route: "learning", threshold: 15, strongSubject: "english" },
+  { personality: "こうきしん", favoriteActivity: "たんけん", favoriteFood: "ばなな", route: "typing", threshold: 650, strongSubject: "math" },
+  { personality: "やさしい", favoriteActivity: "おんがく", favoriteFood: "ぷりん", route: "learning", threshold: 25, strongSubject: "japanese" },
+  { personality: "まいぺーす", favoriteActivity: "げーむ", favoriteFood: "かれー", route: "typing", threshold: 1000, strongSubject: "english" },
+  { personality: "あかるい", favoriteActivity: "おしゃべり", favoriteFood: "けーき", route: "learning", threshold: 40, strongSubject: "math" },
+];
+ACTIVE_FRIEND_DETAILS.forEach((detail, i) => {
+  Object.assign(FRIENDS[i], detail);
+  FRIENDS[i].favoriteTopics = [detail.strongSubject];
+  FRIENDS[i].weakSubject = detail.strongSubject === "math" ? "japanese" : "math";
+});
 export const ACTIVE_FRIENDS = FRIENDS.slice(0, 10);
 
 export const COLORS = [

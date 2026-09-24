@@ -1,5 +1,6 @@
 import {
   SUBJECTS,
+  CORE_SUBJECT_IDS,
   FRIENDS,
   FISH,
   DINOS,
@@ -347,7 +348,9 @@ export function masterRequirements(s) {
     ["きょうりゅう30しゅるい はっけん", s.dinosaurs.completedCount === 30],
     [
       "ぜんぶの がくしゅうを くりあ",
-      SUBJECTS.every((x) => s.learning[x.id].levels[x.maxLevel]?.stars > 0),
+      SUBJECTS.filter((x) => CORE_SUBJECT_IDS.includes(x.id)).every(
+        (x) => s.learning[x.id].levels[x.maxLevel]?.stars > 0,
+      ),
     ],
     ["たいぴんぐはっくつ Lv30", s.typing.completedLevels.includes(30)],
   ];

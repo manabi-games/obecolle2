@@ -129,15 +129,26 @@ export function friendPortrait(friend, hidden = false) {
 
 export function itemPreview(item, hidden = false) {
   if (!item) return "";
+  const color = item.color || "#8fb9ac",
+    hiddenClass = hidden ? " silhouette" : "",
+    label = hidden ? "まだ もっていない あいてむ" : E(item.name);
+  if (item.type === "clothing") {
+    const shape = Number(item.shape || 0) % 5;
+    return `<span class="item-preview wearable-preview clothing-preview clothing-shape-${shape}${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><i class="cloth-main"></i><i class="cloth-detail"></i></span>`;
+  }
+  if (item.type === "accessories" && item.id?.startsWith("hat_")) {
+    const shape = Number(item.shape || 0) % 5;
+    return `<span class="item-preview wearable-preview hat-preview hat-shape-${shape}${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><i class="hat-main"></i><i class="hat-detail"></i></span>`;
+  }
+  if (item.type === "accessories") {
+    const shape = Number(item.shape || 0) % 2;
+    return `<span class="item-preview wearable-preview glasses-preview glasses-shape-${shape}${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><i></i><i></i></span>`;
+  }
   let emoji = "✦";
   if (item.id?.startsWith("rod_")) emoji = "🎣";
-  else if (item.type === "clothing") emoji = "👕";
-  else if (item.type === "accessories")
-    emoji = item.id?.startsWith("hat_") ? "🧢" : "👓";
   else if (item.type === "wallpaper") emoji = "▦";
   else if (item.type === "floor") emoji = "▰";
   else if (item.type === "furniture")
     emoji = FURNITURE_EMOJI[item.shape ?? 0] || "🪑";
-  const color = item.color || "#8fb9ac";
-  return `<span class="item-preview${hidden ? " silhouette" : ""}" style="--item-color:${color}" role="img" aria-label="${hidden ? "まだ もっていない あいてむ" : E(item.name)}"><span>${emoji}</span></span>`;
+  return `<span class="item-preview${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><span>${emoji}</span></span>`;
 }
