@@ -639,17 +639,26 @@ export function availableFurnitureCount(s, itemId) {
 export function gift(s, id, itemId) {
   const item = ITEMS.find((i) => i.id === itemId),
     friend = s.friends[id];
-  if (!friend || !item || item.type !== "furniture")
-    throw Error("おくれる かぐを えらんでね");
-  if (availableFurnitureCount(s, itemId) < 1)
-    throw Error("おへやで つかっていない かぐを おくろう");
-  s.inventory.furniture[itemId]--;
+  if (!friend || !item || !["furniture", "clothing", "accessories"].includes(item.type))
+    throw Error("おくれる あいてむを えらんでね");
+
+  if (item.type === "furniture") {
+    if (availableFurnitureCount(s, itemId) < 1)
+      throw Error("おへやで つかっていない かぐを おくろう");
+    s.inventory.furniture[itemId]--;
+  } else {
+    if (!s.inventory[item.type]?.[itemId])
+      throw Error("もっている ふくや こものを おくろう");
+    if (friend.gifts.includes(itemId))
+      throw Error("その あいてむは もう おくったよ");
+  }
+
   friend.gifts.push(itemId);
-  friend.affinity = Math.min(
-    100,
-    friend.affinity +
-      (item.theme === FRIENDS.findIndex((f) => f.id === id) % 6 ? 8 : 3),
-  );
+  const friendIndex = FRIENDS.findIndex((f) => f.id === id),
+    bonus = item.type === "furniture"
+      ? item.theme === friendIndex % 6 ? 8 : 4
+      : 6;
+  friend.affinity = Math.min(100, friend.affinity + bonus);
   friendMilestone(s, id);
 }
 export function claimChest(s, rng = Math.random) {

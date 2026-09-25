@@ -172,6 +172,27 @@ class Game {
       return Number.isInteger(n) && n < 4;
     return true;
   }
+  townDecorPreview(item) {
+    return `<div class="town-decor-preview"><span>${E(item.icon || "✨")}</span><small>${E(item.name)}</small></div>`;
+  }
+  async collectTreasure(index) {
+    index = Number(index);
+    if (!Number.isInteger(index) || index < 0 || index > 4) return;
+    const now = new Date(),
+      day = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`,
+      key = `treasure_${day}_${index}`;
+    if (this.s.progression.storyFlags[key]) return;
+    this.s.progression.storyFlags[key] = true;
+    const seed = [...day].reduce((sum, ch) => sum + ch.charCodeAt(0), 0),
+      coins = [10, 15, 20, 25, 30][(seed + index * 3) % 5];
+    this.s.progression.coins += coins;
+    R.metric(this.s, "treasure");
+    this.world.hideAction?.(`treasure:${index}`);
+    this.audio.effect("reward");
+    this.audio.speak(`たからばこ！ ${coins}こいん！`, "ja-JP", { rate: 0.92, pitch: 1.12 });
+    await this.commit();
+    this.toast(`✨ たからばこ！ +${coins}こいん`);
+  }
   friendVoiceProfile(id) {
     return D.ACTIVE_FRIENDS.find((f) => f.id === id)?.voice || {
       rate: 0.86,
@@ -219,7 +240,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.7.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.8.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -415,7 +436,7 @@ class Game {
     }
     const length = Math.hypot(x, z);
     if (length) {
-      const speed = (4.2 * dt) / Math.max(1, length),
+      const speed = (6.2 * dt) / Math.max(1, length),
         nx = p.x + x * speed,
         nz = p.z + z * speed;
       if (walkable(nx, p.z)) p.x = nx;
@@ -444,6 +465,18 @@ class Game {
         Math.hypot(t.position.x - p.x, t.position.z - p.z) < 2.6,
     );
     this.nearFriend = nearbyFriend?.userData.action || null;
+    const nearbyTreasure = this.world.targets.find(
+      (t) =>
+        t.visible !== false &&
+        String(t.userData.action || "").startsWith("treasure:") &&
+        Math.hypot(t.position.x - p.x, t.position.z - p.z) < 1.35,
+    );
+    if (nearbyTreasure && !this.collectingTreasure) {
+      this.collectingTreasure = true;
+      this.action(nearbyTreasure.userData.action)
+        .catch((e) => this.error(e))
+        .finally(() => (this.collectingTreasure = false));
+    }
 
     const talkButton = document.querySelector("#walk-talk");
     if (talkButton) {
@@ -608,22 +641,25 @@ class Game {
   }
   giftMenu(id, page = 0) {
     this.closeDialog();
-    const friend = D.ACTIVE_FRIENDS.find((f) => f.id === id);
-    if (!friend || !this.s.friends[id])
-      throw Error("ともだちが みつからないよ");
-    const items = D.ITEMS.filter(
-        (i) =>
-          i.type === "furniture" &&
-          this.featuredShopItem(i) &&
-          R.availableFurnitureCount(this.s, i.id) > 0,
-      ),
+    const friend = D.ACTIVE_FRIENDS.find((f) => f.id === id),
+      state = this.s.friends[id];
+    if (!friend || !state) throw Error("ともだちが みつからないよ");
+    const canGift = (item) => {
+        if (!this.featuredShopItem(item)) return false;
+        if (item.type === "furniture") return R.availableFurnitureCount(this.s, item.id) > 0;
+        if (!["clothing", "accessories"].includes(item.type)) return false;
+        return !!this.s.inventory[item.type]?.[item.id] && !state.gifts.includes(item.id);
+      },
+      items = D.ITEMS.filter(canGift),
       pageSize = 6,
       pages = Math.max(1, Math.ceil(items.length / pageSize));
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.giftFriend = id;
     this.giftPage = page;
+    const typeName = (item) =>
+      item.type === "furniture" ? "かぐ" : item.type === "clothing" ? "ふく" : "こもの";
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>${E(friend.name)}へ ぷれぜんと</h2><p>おくった かぐは おへやに じどうで かざられるよ。</p></div><button data-a="resident:${id}">もどる</button></div><div class="grid room-item-grid gift-grid">${items.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card" data-a="give:${id}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>おくれる ${R.availableFurnitureCount(this.s, i.id)}こ</small></button>`).join("") || '<div class="empty-room-message">いま おくれる かぐが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "giftpage") : ""}`,
+      `<div class="row spread panel-heading"><div><h2>${E(friend.name)}へ ぷれぜんと</h2><p>おくった かぐは おへやに じどうで かざられるよ。ふくや ぼうしは そのこが みにつけるよ。</p></div><button data-a="resident:${id}">もどる</button></div><div class="grid room-item-grid gift-grid">${items.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card" data-a="give:${id}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>🎁 ${typeName(i)}</small></button>`).join("") || '<div class="empty-room-message">いま おくれる ものが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "giftpage") : ""}`,
       "wide child-grid-panel gift-panel room-edit-panel",
     );
   }
@@ -835,47 +871,50 @@ class Game {
     );
   }
   shop(category = "clothing", page = 0) {
-    const allowed = ["clothing", "furniture", "accessories", "interior"];
+    const allowed = ["clothing", "accessories", "town", "furniture", "interior"];
     if (!allowed.includes(category)) category = "clothing";
     this.setScene("shop");
-    const rows = D.ITEMS.filter((i) => !i.rewardOnly)
-      .filter((i) =>
-        category === "accessories"
-          ? i.type === "accessories"
-          : category === "interior"
-            ? ["wallpaper", "floor"].includes(i.type)
-            : i.type === category,
-      )
-      .filter((i) => this.featuredShopItem(i)),
-      pages = Math.max(1, Math.ceil(rows.length / 6)),
+    const rows = category === "town"
+        ? D.TOWN_DECOR
+        : D.ITEMS.filter((i) => !i.rewardOnly)
+            .filter((i) =>
+              category === "accessories"
+                ? i.type === "accessories"
+                : category === "interior"
+                  ? ["wallpaper", "floor"].includes(i.type)
+                  : i.type === category,
+            )
+            .filter((i) => this.featuredShopItem(i)),
+      pageSize = 8,
+      pages = Math.max(1, Math.ceil(rows.length / pageSize)),
       owned = (i) =>
-        i.type === "furniture"
-          ? false
-          : ["wallpaper", "floor"].includes(i.type)
-            ? !!this.s.inventory.specialItems[i.id]
-            : !!this.s.inventory[i.type]?.[i.id];
+        category === "town"
+          ? !!this.s.inventory.specialItems[i.id]
+          : i.type === "furniture"
+            ? false
+            : ["wallpaper", "floor"].includes(i.type)
+              ? !!this.s.inventory.specialItems[i.id]
+              : !!this.s.inventory[i.type]?.[i.id];
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.shopCategory = category;
     this.shopPage = page;
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>しょっぷ</h2><p>おなじ みための いろちがいは へらして、えらびやすくしたよ。</p></div><span class="panel-balance">◉ ${this.s.progression.coins}</span><button data-a="island">まちへ</button></div>
-      <div class="tabs">${[
+      `<div class="row spread panel-heading"><div><h2>しょっぷ</h2><p>じぶん・ともだち・まちを すこしずつ じぶんいろにしよう。</p></div><span class="panel-balance">◉ ${this.s.progression.coins}</span><button data-a="island">まちへ</button></div>
+      <div class="tabs shop-tabs">${[
         ["clothing", "ふく"],
-        ["furniture", "かぐ"],
         ["accessories", "ぼうし・めがね"],
+        ["town", "まちのかざり"],
+        ["furniture", "かぐ"],
         ["interior", "かべ・ゆか"],
       ].map(([id, n]) => `<button class="${id === category ? "active" : ""}" data-a="shopcat:${id}">${n}</button>`).join("")}</div>
-      <div class="grid shop-grid">${rows.slice(page * 6, page * 6 + 6).map((i) => {
-        const requirement = D.itemRequirement(i.id, this.s),
+      <div class="grid shop-grid compact-shop-grid">${rows.slice(page * pageSize, page * pageSize + pageSize).map((i) => {
+        const requirement = category === "town" ? null : D.itemRequirement(i.id, this.s),
           hasIt = owned(i),
-          locked =
-            this.s.progression.manabiRank < i.rank ||
-            !!requirement ||
-            this.s.progression.coins < i.price ||
-            hasIt;
-        return `<div class="tile shop-tile"><div class="shop-preview">${itemPreview(i)}</div><span class="name">${E(i.name)}</span><small>${i.price} こいん</small><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
+          locked = this.s.progression.manabiRank < i.rank || !!requirement || this.s.progression.coins < i.price || hasIt,
+          preview = category === "town" ? this.townDecorPreview(i) : itemPreview(i);
+        return `<div class="tile shop-tile ${category === "town" ? "town-shop-tile" : ""}"><div class="shop-preview">${preview}</div><span class="name">${E(i.name)}</span><small>${i.price} こいん</small><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.manabiRank < i.rank ? `らんく${i.rank}` : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
       }).join("")}</div>${pages > 1 ? this.pagination(page, pages, "shoppage") : ""}`,
-      "wide child-grid-panel shop-panel",
+      "wide child-grid-panel shop-panel compact-shop-panel",
     );
   }
   pagination(page, pages, action) {
@@ -1607,6 +1646,9 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "island":
         this.island();
         break;
+      case "treasure":
+        await this.collectTreasure(+b);
+        break;
       case "mansion":
         this.mansion();
         break;
@@ -1642,15 +1684,19 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "giftpage":
         this.giftMenu(this.giftFriend, +b);
         break;
-      case "give":
+      case "give": {
+        const gift = D.ITEMS.find((item) => item.id === c);
         R.gift(this.s, b, c);
         await this.commit();
         this.room(b);
         this.say(
-          D.FRIENDS.find((f) => f.id === b).name,
-          "ありがとう！ おへやに かざるね。",
+          D.ACTIVE_FRIENDS.find((f) => f.id === b)?.name || "ともだち",
+          gift?.type === "furniture"
+            ? `ありがとう！ ${gift.name}、おへやに かざるね！`
+            : `わあ！ ${gift?.name || "ぷれぜんと"}、さっそく みにつけるね！`,
         );
         break;
+      }
       case "together":
         this.together(b);
         break;
@@ -1776,12 +1822,26 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "shoppage":
         this.shop(this.shopCategory, +b);
         break;
-      case "buy":
-        R.purchase(this.s, b);
-        await this.commit();
-        this.shop(this.shopCategory, this.shopPage);
-        this.toast("かえたよ！");
+      case "buy": {
+        const town = D.TOWN_DECOR.find((item) => item.id === b);
+        if (town) {
+          if (this.s.inventory.specialItems[town.id]) throw Error("もう まちに あるよ");
+          if (this.s.progression.manabiRank < town.rank) throw Error("らんくが たりないよ");
+          if (this.s.progression.coins < town.price) throw Error("こいんが たりないよ");
+          this.s.progression.coins -= town.price;
+          this.s.inventory.specialItems[town.id] = 1;
+          await this.commit();
+          this.shop("town", this.shopPage);
+          this.audio.effect("reward");
+          this.toast(`${town.name}が まちに ふえた！`);
+        } else {
+          R.purchase(this.s, b);
+          await this.commit();
+          this.shop(this.shopCategory, this.shopPage);
+          this.toast("かえたよ！");
+        }
         break;
+      }
       case "decorate":
         this.decorate();
         break;

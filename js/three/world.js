@@ -15,6 +15,7 @@ import {
   CREATURES,
   ITEMS,
   COLORS,
+  TOWN_DECOR,
 } from "../data/catalog.js";
 export class World {
   constructor(canvas, onSelect) {
@@ -101,6 +102,82 @@ export class World {
     g.scale.setScalar(scale);
     this.add(g, x, 0.1, z);
     this.ambient.push({ obj: g, type: "tree", phase: Math.random() * 6 });
+  }
+  friendAppearance(friend, state) {
+    const gifted = [...(state?.gifts || [])]
+      .reverse()
+      .map((id) => ITEMS.find((item) => item.id === id))
+      .filter(Boolean),
+      outfit = gifted.find((item) => item.type === "clothing"),
+      hat = gifted.find((item) => item.type === "accessories" && item.id.startsWith("hat_")),
+      glasses = gifted.find((item) => item.type === "accessories" && item.id.startsWith("glasses_"));
+    return {
+      ...friend.baseAppearance,
+      outfit: outfit?.id || "clothing_" + friend.defaultOutfit,
+      ...(hat ? { hat: hat.id } : {}),
+      ...(glasses ? { glasses: glasses.id } : {}),
+    };
+  }
+  townDecoration(item) {
+    const g = new THREE.Group(),
+      add = (kind, color, size, pos) => {
+        const m = mesh(kind, color, size, pos);
+        g.add(m);
+        return m;
+      },
+      c = item.color,
+      a = item.accent;
+    if (item.shape === 0) {
+      add("box", "#8a6c4d", [2.2, 0.18, 1.2], [0, 0.1, 0]);
+      for (let i = 0; i < 9; i++) {
+        const x = -0.8 + (i % 3) * 0.8, z = -0.35 + Math.floor(i / 3) * 0.35;
+        add("cylinder", "#6c9a58", [0.035, 0.35, 0.035], [x, 0.3, z]);
+        add("ball", i % 2 ? c : a, [0.16, 0.16, 0.16], [x, 0.55, z]);
+      }
+    } else if (item.shape === 1) {
+      add("box", c, [2.2, 0.22, 0.72], [0, 0.55, 0]);
+      add("box", c, [2.2, 0.72, 0.16], [0, 0.92, -0.3]);
+      for (const x of [-0.85, 0.85]) add("box", "#76563e", [0.16, 0.55, 0.16], [x, 0.28, 0]);
+    } else if (item.shape === 2) {
+      add("cylinder", "#6f5f52", [0.08, 2.1, 0.08], [0, 1.05, 0]);
+      add("box", c, [0.62, 0.75, 0.62], [0, 2.12, 0]);
+      add("ball", a, [0.28, 0.28, 0.28], [0, 2.18, 0]);
+      add("cone", "#6f5f52", [0.5, 0.35, 0.5], [0, 2.62, 0]);
+    } else if (item.shape === 3) {
+      add("cylinder", "#d7cba9", [1.5, 0.24, 1.5], [0, 0.12, 0]);
+      add("cylinder", c, [1.1, 0.28, 1.1], [0, 0.35, 0]);
+      add("cylinder", "#e6ddc3", [0.28, 1.3, 0.28], [0, 0.98, 0]);
+      add("ball", a, [0.4, 0.2, 0.4], [0, 1.72, 0]);
+    } else if (item.shape === 4) {
+      add("box", "#cbb993", [1.6, 0.3, 1.1], [0, 0.15, 0]);
+      add("ball", c, [0.75, 0.48, 0.4], [0, 0.88, 0]);
+      add("ball", c, [0.42, 0.38, 0.34], [0.68, 1.15, 0]);
+      const tail = add("cone", c, [0.18, 1.1, 0.18], [-0.82, 1.05, 0]); tail.rotation.z = 1.15;
+      add("cone", a, [0.16, 0.36, 0.16], [0.15, 1.42, 0]);
+    } else if (item.shape === 5) {
+      add("cylinder", c, [0.62, 2.5, 0.62], [0, 1.25, 0]);
+      add("cone", a, [0.68, 0.9, 0.68], [0, 2.95, 0]);
+      for (const x of [-0.58, 0.58]) add("cone", "#e76565", [0.32, 0.8, 0.24], [x, 0.55, 0]);
+      add("ball", "#83c9d9", [0.28, 0.28, 0.12], [0, 1.7, 0.58]);
+    } else if (item.shape === 6) {
+      add("cylinder", "#8e7a5e", [0.12, 1.8, 0.12], [0, 0.9, 0]);
+      for (let i = 0; i < 5; i++) {
+        const ang = (i / 5) * Math.PI * 2;
+        add("cone", i % 2 ? c : a, [0.3, 0.8, 0.18], [Math.sin(ang) * 0.48, 2.0 + Math.cos(ang) * 0.48, 0]).rotation.z = -ang;
+      }
+      add("ball", a, [0.34, 0.34, 0.22], [0, 2.0, 0]);
+    } else {
+      add("cylinder", "#8b755a", [0.12, 2.4, 0.12], [0, 1.2, 0]);
+      add("ball", a, [0.24, 0.24, 0.18], [0, 2.38, 0]);
+      for (let i = 0; i < 4; i++) {
+        const blade = add("box", i % 2 ? c : a, [0.18, 1.45, 0.12], [0, 2.38, 0]);
+        blade.rotation.z = i * Math.PI / 2;
+        blade.position.x = Math.cos(i * Math.PI / 2) * 0.58;
+        blade.position.y += Math.sin(i * Math.PI / 2) * 0.58;
+      }
+    }
+    this.add(g, item.x, 0.05, item.z);
+    return g;
   }
   building(f) {
     const g = new THREE.Group(),
@@ -574,6 +651,24 @@ export class World {
     this.sphere("#b0e4e1", [0.8, 0.11, 0.8], [0, 0.53, 1]);
     for (const f of FACILITIES.filter((x) => !["plaza", "fishing", "excavation", "arena"].includes(x.id)))
       this.building(f);
+    if (this.save)
+      for (const item of TOWN_DECOR)
+        if (this.save.inventory.specialItems[item.id]) this.townDecoration(item);
+    if (this.save) {
+      const now = new Date(),
+        day = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`,
+        treasureSpots = [[-14, -6], [14, -6], [-15, 8], [15, 8], [0, -11]];
+      treasureSpots.forEach(([x, z], i) => {
+        if (this.save.progression.storyFlags[`treasure_${day}_${i}`]) return;
+        const chest = new THREE.Group();
+        chest.add(mesh("box", "#a96f43", [0.82, 0.48, 0.62], [0, 0.28, 0]));
+        chest.add(mesh("box", "#e7bd52", [0.86, 0.14, 0.66], [0, 0.54, 0]));
+        chest.add(mesh("box", "#f4d879", [0.16, 0.3, 0.68], [0, 0.32, 0.02]));
+        this.add(chest, x, 0.06, z);
+        this.interact(chest, `treasure:${i}`, "✨ たからばこ", 1.25);
+        this.ambient.push({ obj: chest, type: "treasure", phase: i * 1.7 });
+      });
+    }
     for (let i = 0; i < 24; i++) {
       const angle = (i / 24) * Math.PI * 2;
       this.tree(
@@ -635,7 +730,7 @@ export class World {
       if (!f) return;
       const [x, z] = friendSpots[i] || [0, 0];
       const c = this.human(
-        { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit },
+        this.friendAppearance(f, this.save?.friends[id]),
         x,
         z,
         ["walk", "read", "wave", "think"][i % 4],
@@ -683,6 +778,7 @@ export class World {
     this.ambient.push({ obj: curtain, type: "curtain", phase: 0 });
 
     const gifts = friendId ? s.friends[friendId]?.gifts || [] : [],
+      furnitureGifts = gifts.filter((id) => ITEMS.find((item) => item.id === id)?.type === "furniture"),
       defaults = friendId
         ? [
             `furniture_${friendIndex % 10}`,
@@ -691,7 +787,7 @@ export class World {
           ]
         : [],
       slots = friendId
-        ? Object.fromEntries((gifts.length ? gifts : defaults).slice(-6).map((id, i) => [i, id]))
+        ? Object.fromEntries((furnitureGifts.length ? furnitureGifts : defaults).slice(-6).map((id, i) => [i, id]))
         : s.room.slots,
       positions = [
         [-3, -2], [0, -3], [3, -2], [-3, 1], [0, 1], [3, 1],
@@ -715,9 +811,7 @@ export class World {
 
     const f = friend;
     this.hero = this.human(
-      f
-        ? { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit }
-        : s.player.appearance,
+      f ? this.friendAppearance(f, s.friends[friendId]) : s.player.appearance,
       -0.4,
       2,
       "idle",
@@ -737,6 +831,18 @@ export class World {
       this.interact(mirror, "mirror", "かがみ", 1);
       this.labels.at(-1).strictHover = true;
     }
+  }
+  hideAction(id) {
+    const target = this.targets.find((obj) => obj.userData.action === id);
+    if (target) {
+      target.visible = false;
+      this.targets = this.targets.filter((obj) => obj !== target);
+    }
+    for (const label of this.labels)
+      if (label.id === id) {
+        label.element?.remove?.();
+        label.hidden = true;
+      }
   }
   pick(e) {
     if (!this.interactionsEnabled) return null;
@@ -837,6 +943,10 @@ export class World {
           a.obj.scale.x = 0.8 + Math.sin(t * 0.5 + a.phase) * 0.15;
         }
         if (a.type === "tree") a.obj.rotation.z = Math.sin(t + a.phase) * 0.018;
+        if (a.type === "treasure") {
+          a.obj.position.y = 0.06 + Math.sin(t * 2.4 + a.phase) * 0.06;
+          a.obj.rotation.y = Math.sin(t * 1.2 + a.phase) * 0.08;
+        }
         if (a.type === "bird") {
           a.obj.position.x += dt * 0.4;
           if (a.obj.position.x > 22) a.obj.position.x = -22;

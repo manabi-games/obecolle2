@@ -556,6 +556,17 @@ export const ITEMS = [
     rare: i >= 8,
   })),
 ];
+export const TOWN_DECOR = [
+  { id: "town_flower", name: "にじいろ かだん", icon: "🌷", shape: 0, color: "#e989a3", accent: "#f3ca63", price: 40, rank: 1, x: -12.5, z: 7.5 },
+  { id: "town_bench", name: "みんなの ベンチ", icon: "🪑", shape: 1, color: "#b98d61", accent: "#79aa7d", price: 60, rank: 1, x: 11.5, z: 7.5 },
+  { id: "town_lantern", name: "ほしの ランタン", icon: "🏮", shape: 2, color: "#e36f62", accent: "#ffd56a", price: 80, rank: 2, x: -13.5, z: -4.5 },
+  { id: "town_fountain", name: "きらきら ふんすい", icon: "⛲", shape: 3, color: "#72b8c8", accent: "#d9f4ed", price: 120, rank: 2, x: 13.0, z: -4.0 },
+  { id: "town_dino", name: "きょうりゅうぞう", icon: "🦖", shape: 4, color: "#7ea96f", accent: "#d9c897", price: 160, rank: 3, x: -10.0, z: -10.0 },
+  { id: "town_rocket", name: "うちゅう ロケット", icon: "🚀", shape: 5, color: "#d9e4e8", accent: "#e76565", price: 220, rank: 4, x: 11.0, z: -10.5 },
+  { id: "town_star", name: "おおきな ほし", icon: "⭐", shape: 6, color: "#f0c753", accent: "#fff0a8", price: 280, rank: 5, x: -16.0, z: 1.0 },
+  { id: "town_windmill", name: "かぜの ふうしゃ", icon: "🎡", shape: 7, color: "#8db7cf", accent: "#f1a5a5", price: 360, rank: 6, x: 16.0, z: 2.0 },
+];
+
 export const RODS = [
   "きのつりざお",
   "しっかりろっど",

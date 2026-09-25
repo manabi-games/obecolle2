@@ -28,6 +28,7 @@ export function resetTransientState(target) {
   target.walkDestination = null;
   target.nearDoor = null;
   target.nearFriend = null;
+  target.collectingTreasure = false;
   target.activity = null;
   target.modalOpen = false;
   target.page = 0;
