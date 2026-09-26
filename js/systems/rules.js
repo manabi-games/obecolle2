@@ -606,8 +606,6 @@ export function requestFriend(s, id) {
   if (f.request && !["learning", "typing"].includes(f.request.metric))
     f.request = null;
   if (f.request) return f.request;
-  if (Object.values(s.friends).filter((x) => x.request).length >= 3)
-    throw Error("まず いまの おねがいを かなえてあげよう");
   const choices = [
       "learning",
       ...(s.progression.manabiRank >= 2 ? ["typing"] : []),

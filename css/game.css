@@ -2647,3 +2647,80 @@ button {
   .walk-bar { bottom: 6px; padding: 5px 7px; }
   .walk-bar button { font-size: 13px; padding: 5px 8px; }
 }
+
+
+/* v1.9 dojo: clear requests, non-overlapping notices, personal-best typing loop */
+body.island-interactive #toast {
+  top: 88px;
+  right: 18px;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  width: min(340px, calc(100vw - 36px));
+  max-width: 340px;
+  padding: 10px 15px;
+  border-radius: 16px;
+  font-size: 16px;
+  text-align: center;
+}
+.dojo-shortcut { background: #fff0a8; border-color: #f4d06e; }
+.dojo-menu-panel { max-width: 1040px; overflow: hidden !important; }
+.dojo-mode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.dojo-mode-card { min-height: 270px; padding: 18px 16px; display: grid; grid-template-rows: auto auto 1fr auto auto; align-content: center; gap: 8px; text-align: center; background: #fff8e7; }
+.dojo-mode-card:hover { background: #fff2bd; }
+.dojo-mode-card .dojo-mode-icon { font-size: 42px; }
+.dojo-mode-card strong { font-size: 24px; color: #347b71; }
+.dojo-mode-card small { font-size: 15px; line-height: 1.45; }
+.dojo-mode-card b { color: #7a5a25; font-size: 20px; }
+.dojo-mode-card em { font-style: normal; font-size: 12px; line-height: 1.35; color: #788178; min-height: 34px; }
+.dojo-note { margin-top: 12px; text-align: center; font-size: 15px; color: #6d7a70; }
+.dojo-play-panel { width: min(920px, calc(100vw - 24px)); height: min(520px, calc(100vh - 72px)); max-height: calc(100vh - 72px); overflow: hidden !important; padding: 16px 22px; display: flex; flex-direction: column; }
+.dojo-play-head { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; }
+.dojo-play-head > div:first-child { display: grid; }
+.dojo-play-head strong { color: #347b71; font-size: 27px; }
+.dojo-play-head small { color: #77827a; }
+.dojo-clock { min-width: 126px; text-align: center; background: #eff2d9; border-radius: 18px; padding: 7px 14px; }
+.dojo-clock span { display: block; font-size: 28px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.dojo-clock small { font-size: 12px; }
+.dojo-status-row { display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; margin: 10px 0; }
+.dojo-status-row .pill { margin: 0; white-space: nowrap; }
+.dojo-status-row #dojo-pace { text-align: center; background: #fff0b7; }
+.dojo-word-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; text-align: center; padding: 10px 34px; border-radius: 24px; background: #fff8e8; border: 3px solid #f2dfb8; }
+.dojo-word-stage .typing-word { font-size: clamp(34px, 6vh, 56px); margin: 8px; }
+.dojo-word-stage .roman { font-size: clamp(23px, 4vh, 34px); min-height: 44px; }
+.dojo-word-stage .feedback { min-height: 30px; margin: 5px 0; }
+.dojo-word-stage .keyboard { margin-top: 8px; }
+.dojo-foot { text-align: center; font-size: 14px; color: #6e786f; margin-top: 7px; }
+.dojo-result-panel { overflow: hidden !important; }
+.dojo-result { text-align: center; }
+.dojo-result-number { margin: 10px auto; font-size: 54px; font-weight: 1000; color: #347d72; font-variant-numeric: tabular-nums; }
+.dojo-diff { font-size: 20px !important; color: #9a6d20; }
+.dojo-result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.dojo-result-stats span { background: #eef0dd; border-radius: 14px; padding: 8px; font-size: 14px; }
+.dojo-result-stats b { display: block; font-size: 20px; }
+.dojo-history { background: #fff7e5; border-radius: 14px; padding: 9px 12px; display: grid; gap: 3px; }
+.dojo-history small { color: #788078; }
+.dojo-history strong { font-size: 14px; }
+@media (max-height: 700px) {
+  .dojo-menu-panel { padding: 12px 18px !important; }
+  .dojo-mode-grid { gap: 8px; margin-top: 7px; }
+  .dojo-mode-card { min-height: 205px; padding: 10px; gap: 4px; }
+  .dojo-mode-card .dojo-mode-icon { font-size: 30px; }
+  .dojo-mode-card strong { font-size: 20px; }
+  .dojo-mode-card small { font-size: 13px; }
+  .dojo-mode-card b { font-size: 17px; }
+  .dojo-play-panel { height: calc(100vh - 58px); max-height: calc(100vh - 58px); padding: 10px 16px; }
+  .dojo-play-head strong { font-size: 22px; }
+  .dojo-clock span { font-size: 23px; }
+  .dojo-status-row { margin: 5px 0; gap: 6px; }
+  .dojo-word-stage { padding: 6px 20px; }
+  .dojo-word-stage .typing-word { margin: 3px; }
+  .dojo-word-stage .keyboard { margin-top: 4px; }
+  .dojo-foot { margin-top: 3px; font-size: 12px; }
+}
+@media (max-width: 760px) {
+  .dojo-mode-grid { grid-template-columns: 1fr; }
+  .dojo-menu-panel { overflow: auto !important; }
+  .dojo-status-row { grid-template-columns: 1fr 1fr; }
+  .dojo-status-row #dojo-pace { grid-column: 1 / -1; }
+}

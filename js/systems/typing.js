@@ -272,6 +272,15 @@ const LEVEL_WORDS = [
   ["さいごのちそうまでたどりついた", "さんじゅっしゅるいをみつけよう", "きみはたいぴんぐはっくつめいじん"],
 ];
 
+const DOJO_WORDS = [
+  "あさ", "いぬ", "ねこ", "そら", "はな", "やま", "かわ", "ほん", "みず", "ほし",
+  "がっこう", "ともだち", "えんぴつ", "きょう", "あした", "おはよう", "ありがとう", "たいよう", "でんしゃ", "こうえん",
+  "きょうりゅう", "はっくつ", "ぷれぜんと", "しょっぷ", "おへや", "たからばこ", "まちをあるく", "いっしょにあそぶ", "きょうもがんばる", "しんきろく",
+];
+
+export function dojoWords() {
+  return [...DOJO_WORDS];
+}
 export function typingWords(level) {
   return LEVEL_WORDS[Math.max(1, Math.min(30, level)) - 1];
 }
@@ -285,5 +294,12 @@ export function validateTyping() {
         errors.push(e.message);
       }
     }
+  for (const w of dojoWords()) {
+    try {
+      new TypingEngine(w);
+    } catch (e) {
+      errors.push(e.message);
+    }
+  }
   return errors;
 }

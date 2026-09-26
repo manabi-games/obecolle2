@@ -240,7 +240,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.8.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.9.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -611,31 +611,24 @@ class Game {
     return "♥".repeat(h) + "♡".repeat(5 - h);
   }
   async request(id) {
-    const friend = D.FRIENDS.find((f) => f.id === id);
-    if (!friend || !this.s.friends[id])
-      throw Error("ともだちが みつからないよ");
-    const r = R.requestFriend(this.s, id),
+    const friend = D.FRIENDS.find((f) => f.id === id),
+      state = this.s.friends[id];
+    if (!friend || !state) throw Error("ともだちが みつからないよ");
+    const hadRequest = !!state.request,
+      r = R.requestFriend(this.s, id),
       names = {
-        learning: "がっこうで5もん",
+        learning: "がっこうの くいず",
         typing: "たいぴんぐ",
-        fish: "さかなをつる",
-        dig: "ほるばしょをしらべる",
       };
     await this.commit();
-    const progress = Math.max(
-        0,
-        (this.s.progression.metrics[r.metric] || 0) - r.start,
-      ),
-      done = progress >= r.target;
+    const progress = Math.max(0, (this.s.progression.metrics[r.metric] || 0) - r.start),
+      done = progress >= r.target,
+      task = names[r.metric] || "あそび";
     this.say(
       friend.name,
-      `${names[r.metric]}を ${r.target}かい おねがい！
-いま ${Math.min(r.target, progress)} / ${r.target}${done ? "\nできた！ ほうこくしよう。" : ""}`,
+      `${hadRequest ? "いまの おねがいは" : "おねがい！"}\n${task}を ${r.target}かい やってきて！\n${Math.min(r.target, progress)} / ${r.target}${done ? "\nできた！ ほうこくしてね！" : ""}`,
       done
-        ? [
-            ["できたよ！", "fulfill:" + id],
-            ["またくるね", "closedialog"],
-          ]
+        ? [["できたよ！", "fulfill:" + id], ["またくるね", "closedialog"]]
         : [["わかった！", "closedialog"]],
     );
   }
@@ -782,13 +775,33 @@ class Game {
       (_, i) => page * pageSize + i + 1,
     );
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>⛏️ たいぴんぐはっくつ</h2><p>いまの ちそう：Lv ${unlocked} / 30</p></div><div class="row"><span class="pill">🦖 ${this.s.dinosaurs.completedCount} / 30</span><button data-a="island">まちへ</button></div></div><div class="dig-current"><div><small>つぎの はっくつ</small><strong>ちそう Lv ${unlocked}</strong><span>5つの ことばで いわを くだこう</span></div><button class="primary" data-a="typelevel:basic:${unlocked}">はっくつする！</button></div><div class="grid dig-levels compact-dig-levels">${levels.map((lv) => {
+      `<div class="row spread panel-heading"><div><h2>⛏️ たいぴんぐはっくつ</h2><p>いまの ちそう：Lv ${unlocked} / 30</p></div><div class="row"><span class="pill">🦖 ${this.s.dinosaurs.completedCount} / 30</span><button class="dojo-shortcut" data-a="dojo">⚡ たいぴんぐ道場</button><button data-a="island">まちへ</button></div></div><div class="dig-current"><div><small>つぎの はっくつ</small><strong>ちそう Lv ${unlocked}</strong><span>5つの ことばで いわを くだこう</span></div><button class="primary" data-a="typelevel:basic:${unlocked}">はっくつする！</button></div><div class="grid dig-levels compact-dig-levels">${levels.map((lv) => {
         const dino = D.DINOS[lv - 1],
           found = !!this.s.dinosaurs.fossilBook[dino?.id]?.completed,
           locked = lv > unlocked;
         return `<button data-a="typelevel:basic:${lv}" ${locked ? "disabled" : ""}><strong>Lv ${lv}</strong><small>${found ? "🦖 " + E(dino.name) : locked ? "🔒 まだ" : "▶ いま ここ"}</small></button>`;
       }).join("")}</div>${this.pagination(page, pages, "typingpage")}<div class="row collection-footer"><button data-a="book:dinosaurs">きょうりゅうずかん</button></div>`,
       "wide child-grid-panel typing-lab-panel",
+    );
+  }
+  typingDojo() {
+    this.setScene("typing");
+    const f = this.s.progression.storyFlags,
+      fmt = (ms) => ms ? `${(Number(ms) / 1000).toFixed(2)}びょう` : "--",
+      recent = (key, minute = false) => {
+        const rows = Array.isArray(f[key]) ? f[key].slice(0, 5) : [];
+        return rows.length
+          ? rows.map((n) => minute ? `${n}もじ` : `${(n / 1000).toFixed(2)}秒`).join(" → ")
+          : "まだ きろくなし";
+      },
+      cards = [
+        ["10", "10ご タイムアタック", "まずは ここから。おなじ10ごで BESTをねらおう！", fmt(f.dojo_10_best_ms), recent("dojo_10_recent")],
+        ["30", "30ご タイムアタック", "ながめの ほんばん。さいごまで いっきに！", fmt(f.dojo_30_best_ms), recent("dojo_30_recent")],
+        ["60", "1ぷん チャレンジ", "60びょうで なんもじ うてるかな？", f.dojo_60_best_chars ? `${f.dojo_60_best_chars}もじ` : "--", recent("dojo_60_recent", true)],
+      ];
+    this.panel(
+      `<div class="row spread panel-heading"><div><h2>⚡ たいぴんぐ道場</h2><p>きのうの じぶんを こえよう。しんきろくを ねらう ばしょ！</p></div><div class="row"><button data-a="typing">はっくつへ</button><button data-a="island">まちへ</button></div></div><div class="dojo-mode-grid">${cards.map(([id, title, desc, best, history]) => `<button class="dojo-mode-card" data-a="dojostart:${id}"><span class="dojo-mode-icon">${id === "60" ? "⏱️" : "⚡"}</span><strong>${title}</strong><small>${desc}</small><b>BEST ${best}</b><em>さいきん：${history}</em></button>`).join("")}</div><div class="dojo-note">タイマーは さいしょのキーを うったときに スタートするよ。</div>`,
+      "wide child-grid-panel dojo-menu-panel",
     );
   }
   fishing(friend = null) {
@@ -1730,6 +1743,12 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "typing":
         this.typingLab();
         break;
+      case "dojo":
+        this.typingDojo();
+        break;
+      case "dojostart":
+        this.startDojo(b);
+        break;
       case "typelevel":
         this.startTyping(b, +c);
         break;
@@ -1997,19 +2016,24 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         const old = this.activity;
         this.closeDialog();
         if (old?.kind === "typing")
-          this.startTyping(old.mode, old.level, old.callback);
+          old.mode === "dojo"
+            ? this.startDojo(old.dojoType)
+            : this.startTyping(old.mode, old.level, old.callback);
         else if (old?.kind === "quiz")
           this.startQuiz(old.subject, old.level, old.callback);
         else if (old?.kind === "fish") this.fishingCastScreen();
         else if (old?.kind === "dig") this.digSite();
         else this.island();
         break;
-      case "quitactivity":
+      case "quitactivity": {
+        const old = this.activity;
         this.closeDialog();
         this.activity = null;
         await this.commit();
-        this.island();
+        if (old?.mode === "dojo") this.typingDojo();
+        else this.island();
         break;
+      }
       case "fullscreen":
         if (document.fullscreenElement) await document.exitFullscreen();
         else await document.documentElement.requestFullscreen();

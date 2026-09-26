@@ -7,7 +7,7 @@ import {
   TOURNAMENTS,
 } from "./data/catalog.js";
 import { generateSession } from "./systems/learning.js";
-import { TypingEngine, typingWords, typingScore } from "./systems/typing.js";
+import { TypingEngine, typingWords, typingScore, dojoWords } from "./systems/typing.js";
 import * as rules from "./systems/rules.js";
 const E = (x) =>
   String(x).replace(
@@ -153,6 +153,115 @@ export const games = {
       "small",
     );
   },
+  startDojo(dojoType = "10") {
+    if (!["10", "30", "60"].includes(String(dojoType)))
+      throw Error("その たいむあたっくは えらべないよ");
+    dojoType = String(dojoType);
+    this.scene = "typing";
+    this.world.set("typing", this.s, { mode: "dojo", level: 1 });
+    this.audio.setScene("typing");
+    const words = dojoWords(),
+      targetWords = dojoType === "10" ? 10 : dojoType === "30" ? 30 : Infinity,
+      timeLimit = dojoType === "60" ? 60 : 0,
+      bestKey = dojoType === "60" ? "dojo_60_best_chars" : `dojo_${dojoType}_best_ms`,
+      best = Number(this.s.progression.storyFlags[bestKey] || 0),
+      a = (this.activity = {
+        kind: "typing",
+        mode: "dojo",
+        dojoType,
+        level: 1,
+        words,
+        engine: new TypingEngine(words[0]),
+        wordIndex: 0,
+        targetWords,
+        correct: 0,
+        misses: 0,
+        combo: 0,
+        bestCombo: 0,
+        elapsed: 0,
+        started: false,
+        timeLimit,
+        best,
+      }),
+      title = dojoType === "10" ? "10ご タイムアタック" : dojoType === "30" ? "30ご タイムアタック" : "1ぷん チャレンジ",
+      bestText = best
+        ? dojoType === "60"
+          ? `BEST ${best}もじ`
+          : `BEST ${(best / 1000).toFixed(2)}びょう`
+        : "BEST --";
+    this.panel(
+      `<div class="dojo-play-head"><div><small>⚡ たいぴんぐ道場</small><strong>${title}</strong></div><div class="dojo-clock"><span id="type-time">${dojoType === "60" ? "60.0" : "0.00"}</span><small>${dojoType === "60" ? "のこり" : "けいか"}</small></div><button data-a="pause">Ⅱ</button></div><div class="dojo-status-row"><span class="pill" id="dojo-progress">${dojoType === "60" ? "0もじ" : `0 / ${targetWords}`}</span><span class="pill dojo-best">${bestText}</span><span class="pill" id="dojo-pace">キーを うつと スタート！</span></div><div class="dojo-word-stage"><div class="typing-word" id="type-word"></div><div class="roman" id="type-roman"></div><div class="feedback" id="type-feedback">じぶんの きろくに ちょうせん！</div><div class="progress-track"><div id="type-meter" style="width:0%"></div></div>${this.s.settings.keyboard ? '<div class="keyboard" id="keyboard"></div>' : ""}</div><div class="dojo-foot">${dojoType === "60" ? "60びょうで なんもじ うてるかな？" : "まいかい おなじことば。じぶんの BESTを ぬりかえよう！"}</div>`,
+      "wide dojo-play-panel",
+    );
+    this.renderTyping();
+    return a;
+  },
+  renderDojo() {
+    const a = this.activity;
+    if (a?.kind !== "typing" || a.mode !== "dojo") return;
+    const word = document.querySelector("#type-word"),
+      roman = document.querySelector("#type-roman"),
+      progress = document.querySelector("#dojo-progress"),
+      meter = document.querySelector("#type-meter"),
+      key = document.querySelector("#keyboard");
+    if (word) word.textContent = a.engine.text;
+    if (roman)
+      roman.innerHTML = `<span class="typed">${E(a.engine.input.toUpperCase())}</span><span class="remain">${E(a.engine.hint.toUpperCase())}</span>`;
+    if (progress)
+      progress.textContent = a.dojoType === "60" ? `${a.correct}もじ` : `${Math.min(a.wordIndex, a.targetWords)} / ${a.targetWords}`;
+    if (meter && a.dojoType !== "60")
+      meter.style.width = `${Math.min(100, (a.wordIndex / a.targetWords) * 100)}%`;
+    if (key)
+      key.innerHTML = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
+        .map((row) => [...row].map((c) => `<span class="key ${c.toLowerCase() === a.engine.hint[0] ? "next" : ""}">${c}</span>`).join(""))
+        .join("<br>");
+  },
+  async finishDojoGame() {
+    const a = this.activity;
+    if (a?.kind !== "typing" || a.mode !== "dojo") return;
+    this.activity = null;
+    const flags = this.s.progression.storyFlags,
+      type = a.dojoType,
+      isMinute = type === "60",
+      bestKey = isMinute ? "dojo_60_best_chars" : `dojo_${type}_best_ms`,
+      recentKey = `dojo_${type}_recent`,
+      value = isMinute ? a.correct : Math.max(1, Math.round(a.elapsed * 1000)),
+      oldBest = Number(flags[bestKey] || 0),
+      isNew = isMinute ? value > oldBest : oldBest === 0 || value < oldBest,
+      accuracy = (a.correct / Math.max(1, a.correct + a.misses)) * 100,
+      recent = Array.isArray(flags[recentKey]) ? flags[recentKey].filter(Number.isFinite) : [];
+    if (isNew) flags[bestKey] = value;
+    flags[recentKey] = [value, ...recent].slice(0, 5);
+    rules.metric(this.s, "typing");
+    rules.metric(this.s, "dojo");
+    await this.commit();
+    if (isNew) {
+      this.audio.effect("reward");
+      this.audio.speak("しんきろく！", "ja-JP", { rate: 0.9, pitch: 1.15 });
+    }
+    const mainValue = isMinute ? `${value}もじ` : `${(value / 1000).toFixed(2)}びょう`,
+      bestValue = Number(flags[bestKey] || value),
+      bestText = isMinute ? `${bestValue}もじ` : `${(bestValue / 1000).toFixed(2)}びょう`,
+      diff = oldBest
+        ? isMinute
+          ? value - oldBest
+          : (oldBest - value) / 1000
+        : 0,
+      diffText = !oldBest
+        ? "はじめての きろく！"
+        : isNew
+          ? isMinute
+            ? `まえのBESTより +${diff}もじ！`
+            : `まえのBESTより ${diff.toFixed(2)}びょう はやい！`
+          : "つぎは BESTを こえよう！",
+      history = flags[recentKey]
+        .map((n) => isMinute ? `${n}もじ` : `${(n / 1000).toFixed(2)}秒`)
+        .join(" → ");
+    this.panel(
+      `<div class="dojo-result"><h2>${isNew ? "✨ しんきろく！" : "おつかれさま！"}</h2><div class="dojo-result-number">${mainValue}</div><p class="dojo-diff">${diffText}</p><div class="dojo-result-stats"><span>BEST <b>${bestText}</b></span><span>せいかくさ <b>${accuracy.toFixed(0)}%</b></span><span>さいだいこんぼ <b>${a.bestCombo}</b></span></div><div class="dojo-history"><small>さいきん5かい</small><strong>${history}</strong></div><div class="result-actions"><button class="primary" data-a="dojostart:${type}">もういっかい！</button><button data-a="dojo">どうじょうへ</button><button class="muted-button" data-a="island">まちへ</button></div></div>`,
+      "small dojo-result-panel",
+    );
+  },
   startTyping(mode = "basic", level = this.s.typing.level, callback = null) {
     const modeInfo = TYPING_MODES.find((x) => x.id === mode);
     if (!modeInfo) throw Error("その たいぴんぐは えらべないよ");
@@ -197,6 +306,7 @@ export const games = {
   renderTyping() {
     const a = this.activity;
     if (a?.kind !== "typing") return;
+    if (a.mode === "dojo") return this.renderDojo();
     document.querySelector("#type-word").textContent = a.engine.text;
     document.querySelector("#type-roman").innerHTML =
       `<span class="typed">${E(a.engine.input.toUpperCase())}</span><span class="remain">${E(a.engine.hint.toUpperCase())}</span>`;
@@ -244,13 +354,21 @@ export const games = {
               ? "ぱわーが たまった！"
               : a.mode === "basic"
                 ? "いわが くだけた！"
-                : "いいね！";
+                : a.mode === "dojo"
+                  ? "いいペース！"
+                  : "いいね！";
       if (a.engine.done) {
         a.wordIndex++;
-        this.world.typingProgress?.(a.wordIndex, a.mode);
-        if (a.mode !== "challenge" && a.wordIndex >= 5)
-          return this.finishTypingGame();
-        a.engine = new TypingEngine(a.words[a.wordIndex % a.words.length]);
+        if (a.mode === "dojo") {
+          if (a.dojoType !== "60" && a.wordIndex >= a.targetWords)
+            return this.finishDojoGame();
+          a.engine = new TypingEngine(a.words[a.wordIndex % a.words.length]);
+        } else {
+          this.world.typingProgress?.(a.wordIndex, a.mode);
+          if (a.mode !== "challenge" && a.wordIndex >= 5)
+            return this.finishTypingGame();
+          a.engine = new TypingEngine(a.words[a.wordIndex % a.words.length]);
+        }
       }
     } else {
       a.misses++;
@@ -610,7 +728,28 @@ export const games = {
     if (a.kind === "typing" && a.started) {
       a.elapsed += dt;
       const e = document.querySelector("#type-time");
-      if (e)
+      if (a.mode === "dojo") {
+        if (e)
+          e.textContent = a.dojoType === "60"
+            ? Math.max(0, 60 - a.elapsed).toFixed(1)
+            : a.elapsed.toFixed(2);
+        const meter = document.querySelector("#type-meter"),
+          pace = document.querySelector("#dojo-pace"),
+          progress = a.dojoType === "60"
+            ? Math.min(1, a.elapsed / 60)
+            : Math.min(1, (a.wordIndex + a.engine.input.length / Math.max(1, a.engine.recommended.length)) / a.targetWords);
+        if (meter) meter.style.width = `${Math.min(100, progress * 100)}%`;
+        if (pace && a.best) {
+          if (a.dojoType === "60") {
+            const need = Math.max(0, a.best - a.correct);
+            pace.textContent = need ? `BESTまで あと${need}もじ` : "BESTを こえた！";
+          } else if (progress > 0.02) {
+            const expected = (a.best / 1000) * progress,
+              delta = a.elapsed - expected;
+            pace.textContent = `BESTより ${delta <= 0 ? "-" : "+"}${Math.abs(delta).toFixed(2)}びょう`;
+          }
+        }
+      } else if (e)
         e.textContent = a.timeLimit
           ? Math.max(0, Math.ceil(a.timeLimit - a.elapsed)) + "びょう"
           : Math.floor(a.elapsed) + "びょう";
@@ -620,7 +759,7 @@ export const games = {
           5 - a.misses * 0.08 + a.wordIndex * 0.2;
       }
       if (a.timeLimit && a.elapsed >= a.timeLimit)
-        this.finishTypingGame().catch((e) => this.error(e));
+        (a.mode === "dojo" ? this.finishDojoGame() : this.finishTypingGame()).catch((e) => this.error(e));
     }
     if (a.kind === "fish") {
       a.elapsed += dt;
