@@ -2724,3 +2724,121 @@ body.island-interactive #toast {
   .dojo-status-row { grid-template-columns: 1fr 1fr; }
   .dojo-status-row #dojo-pace { grid-column: 1 / -1; }
 }
+
+
+    /* v1.10 density + standalone dojo: less frame, more game */
+    .panel {
+      border-width: 3px;
+      border-radius: 22px;
+      padding: 16px 20px;
+    }
+    .panel h2 { font-size: 25px; margin-bottom: 7px; }
+    .panel h3 { font-size: 20px; margin: 7px 0; }
+    .panel p { font-size: 17px; line-height: 1.4; margin: 6px 0; }
+    .panel small, .muted { font-size: 13px; }
+    .child-grid-panel button { font-size: 16px; padding: 7px 11px; border-radius: 13px; }
+    .child-grid-panel .tile { border-radius: 14px; padding: 8px; }
+    .panel-heading { margin-bottom: 6px; }
+    .panel-heading .row { gap: 6px; }
+    .tabs { gap: 5px; margin-bottom: 8px; }
+    .tabs button { font-size: 14px; padding: 6px 10px; }
+    .pagination { margin-top: 7px; gap: 12px; }
+    .pagination button { font-size: 15px; padding: 5px 9px; }
+
+    .compact-school-panel {
+      width: min(760px, 92vw) !important;
+      height: auto !important;
+      overflow: hidden !important;
+    }
+    .school-menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 190px));
+      justify-content: center;
+      gap: 12px;
+      margin: 12px auto 4px;
+    }
+    .compact-subject {
+      min-height: 150px !important;
+      max-height: 160px;
+      display: grid;
+      align-content: center;
+      gap: 5px;
+      background: #fff8e7;
+    }
+    .compact-subject .icon { font-size: 38px !important; line-height: 1; }
+    .compact-subject strong { font-size: 21px; }
+    .compact-subject small { font-size: 13px; }
+
+    .all-levels-panel {
+      width: min(920px, 95vw) !important;
+      height: auto !important;
+      max-height: calc(100vh - 70px);
+      overflow: hidden !important;
+    }
+    .all-level-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .all-level-grid > button {
+      min-height: 86px !important;
+      padding: 7px 8px !important;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+    }
+    .all-level-grid strong { font-size: 19px; }
+    .all-level-grid .step-title { font-size: 11px; line-height: 1.25; margin: 1px 0; }
+    .all-level-grid small { font-size: 11px; line-height: 1.25; }
+    .level-count-8 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .level-count-10 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .level-count-12 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .compact-dojo-grid { gap: 10px; }
+    .compact-dojo-card { min-height: 225px; padding: 12px !important; gap: 5px; }
+    .compact-dojo-card .dojo-mode-icon { font-size: 34px; }
+    .compact-dojo-card strong { font-size: 21px; }
+    .compact-dojo-card small { font-size: 13px; }
+    .compact-dojo-card b { font-size: 18px; }
+    .dojo-reward-line {
+      display: block;
+      padding: 6px 7px;
+      border-radius: 10px;
+      background: #fff0ba;
+      color: #755d28;
+      font-size: 12px;
+      line-height: 1.3;
+    }
+    .dojo-coin-reward {
+      display: inline-block;
+      margin: 5px auto 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: #edf0d6;
+      color: #53694e;
+      font-weight: 900;
+    }
+    .dojo-item-reward {
+      margin: 7px auto;
+      padding: 9px 12px;
+      border: 2px solid #edc75e;
+      border-radius: 14px;
+      background: #fff2b8;
+      color: #735823;
+    }
+    .dojo-item-reward small { display: block; margin-top: 2px; }
+
+    @media (max-height: 650px) {
+      #screen { padding-top: 68px; padding-bottom: 8px; }
+      .panel { padding: 11px 15px; }
+      .panel h2 { font-size: 22px; }
+      .panel p { font-size: 14px; }
+      .compact-subject { min-height: 125px !important; max-height: 130px; }
+      .compact-subject .icon { font-size: 30px !important; }
+      .all-level-grid { gap: 5px; }
+      .all-level-grid > button { min-height: 70px !important; padding: 4px 6px !important; }
+      .all-level-grid strong { font-size: 16px; }
+      .all-level-grid .step-title, .all-level-grid small { font-size: 10px; }
+      .compact-dojo-card { min-height: 185px; }
+    }

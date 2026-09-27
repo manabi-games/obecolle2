@@ -32,6 +32,7 @@ export const FACILITIES = [
   ["mansion", "おべこれまんしょん", 1, 0, -8, "#f6c887"],
   ["school", "まなびがっこう", 1, 9, -6, "#ef987a"],
   ["typing", "たいぴんぐはっくつじょ", 2, 12, 1, "#80c9df"],
+  ["dojo", "たいぴんぐどうじょう", 1, -9, -4, "#d58b63"],
   ["arena", "さいきょうありーな", 8, 9, 8, "#b4a0dc"],
   ["fishing", "つりみなと", 4, -1, 11, "#69b9c8"],
   ["shop", "しょっぷすとりーと", 3, -9, 6, "#e8abbd"],
@@ -555,6 +556,9 @@ export const ITEMS = [
     rank: 3,
     rare: i >= 8,
   })),
+  { id: "dojo_reward_10", name: "いなずま はちまき", type: "accessories", shape: 2, color: "#efc34e", price: 0, rank: 1, rare: true, rewardOnly: true },
+  { id: "dojo_reward_20", name: "はやての どうぎ", type: "clothing", shape: 3, color: "#d96d58", price: 0, rank: 1, rare: true, rewardOnly: true },
+  { id: "dojo_reward_60", name: "しんきろく ぼうし", type: "accessories", shape: 4, color: "#6e9fd1", price: 0, rank: 1, rare: true, rewardOnly: true },
 ];
 export const TOWN_DECOR = [
   { id: "town_flower", name: "にじいろ かだん", icon: "🌷", shape: 0, color: "#e989a3", accent: "#f3ca63", price: 40, rank: 1, x: -12.5, z: 7.5 },

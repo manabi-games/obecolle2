@@ -1,0 +1,44 @@
+import assert from "node:assert/strict";
+    import fs from "node:fs";
+    import * as D from "../js/data/catalog.js";
+    import * as R from "../js/systems/rules.js";
+    import { dojoWords, TypingEngine, validateTyping } from "../js/systems/typing.js";
+
+    assert.equal(fs.readFileSync(new URL("../VERSION", import.meta.url), "utf8").trim(), "1.10.0");
+    const dojo = D.FACILITIES.find((x) => x.id === "dojo");
+    assert.ok(dojo && dojo.rank === 1);
+    for (const id of ["dojo_reward_10", "dojo_reward_20", "dojo_reward_60"]) {
+      const item = D.ITEMS.find((x) => x.id === id);
+      assert.ok(item && item.rewardOnly && item.rare, id);
+    }
+    const zero = () => 0;
+    const one = () => 0.999999;
+    const a = dojoWords(20, zero), b = dojoWords(20, one);
+    assert.equal(a.length, 20);
+    assert.equal(new Set(a).size, 20);
+    assert.equal(b.length, 20);
+    assert.notDeepEqual(a, b);
+    for (const w of dojoWords(70, () => 0.37)) assert.doesNotThrow(() => new TypingEngine(w));
+    assert.deepEqual(validateTyping(), []);
+    const s=R.newSave(1,"てすと");
+    assert.ok(s.progression.unlockedFacilities.includes("dojo"));
+    const main=fs.readFileSync(new URL("../js/main.js",import.meta.url),"utf8");
+    const games=fs.readFileSync(new URL("../js/games.js",import.meta.url),"utf8");
+    const world=fs.readFileSync(new URL("../js/three/world.js",import.meta.url),"utf8");
+    const css=fs.readFileSync(new URL("../css/game.css",import.meta.url),"utf8");
+    assert.ok(main.includes("Version 1.10.0"));
+    assert.ok(main.includes("20ご タイムアタック"));
+    assert.equal(main.includes("30ご タイムアタック"), false);
+    assert.equal(main.includes('data-a="memories">おもいで</button>'), false);
+    assert.equal(main.includes("おへやに かざす"), false);
+    assert.ok(main.includes("all-level-grid"));
+    assert.equal(main.includes("6こずつ みられるよ"), false);
+    assert.equal(main.includes('dojo-shortcut'), false);
+    assert.ok(games.includes('baseCoins = type === "10" ? 10 : type === "20" ? 20 : 15'));
+    assert.ok(games.includes("dojo_reward_10"));
+    assert.ok(games.includes("れああいてむ げっと！"));
+    assert.ok(world.includes('f.id === "dojo"'));
+    assert.ok(css.includes("/* v1.10 density + standalone dojo"));
+    assert.ok(css.includes(".school-menu-grid"));
+    assert.ok(css.includes(".all-level-grid"));
+    console.log("PASS: Obecolle2 v1.10 standalone dojo + compact UI verifier");

@@ -242,6 +242,22 @@ export class World {
       this.labels.at(-1).hoverOnly = true;
       return;
     }
+    if (f.id === "dojo") {
+      add("box", "#f1dfbd", [3.5, 1.8, 2.6], [0, 0.9, 0]);
+      add("box", "#b77a52", [3.8, 0.18, 2.9], [0, 0.12, 0]);
+      const roof = add("roof", "#c96655", [2.9, 0.9, 2.25], [0, 2.28, 0]);
+      roof.rotation.y = Math.PI / 4;
+      add("box", "#7b573f", [0.9, 1.25, 0.12], [0, 0.72, 1.36]);
+      add("box", "#f0d887", [1.55, 0.55, 0.12], [0, 1.75, 1.4]);
+      for (const x of [-1.25, 1.25]) {
+        add("cylinder", "#925f43", [0.08, 1.45, 0.08], [x, 0.75, 1.5]);
+        add("box", "#925f43", [0.5, 0.08, 0.08], [x, 1.45, 1.5]);
+      }
+      this.add(g, f.x, 0, f.z);
+      this.interact(g, f.id, f.name, 3);
+      this.labels.at(-1).hoverOnly = true;
+      return;
+    }
     if (f.id === "shop") {
       for (let i = 0; i < 3; i++) {
         const x = (i - 1) * 1.45;

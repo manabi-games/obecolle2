@@ -51,7 +51,7 @@ export function newSave(slotId, name = "なまえ", appearance = {}) {
       stars: 0,
       coins: 60,
       tickets: 3,
-      unlockedFacilities: ["mansion", "school", "plaza"],
+      unlockedFacilities: ["mansion", "school", "dojo", "plaza"],
       storyFlags: {},
       metrics: {},
     },

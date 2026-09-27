@@ -273,15 +273,25 @@ const LEVEL_WORDS = [
 ];
 
 const DOJO_WORDS = [
-  "あさ", "いぬ", "ねこ", "そら", "はな", "やま", "かわ", "ほん", "みず", "ほし",
-  "がっこう", "ともだち", "えんぴつ", "きょう", "あした", "おはよう", "ありがとう", "たいよう", "でんしゃ", "こうえん",
-  "きょうりゅう", "はっくつ", "ぷれぜんと", "しょっぷ", "おへや", "たからばこ", "まちをあるく", "いっしょにあそぶ", "きょうもがんばる", "しんきろく",
-];
+      "あさ", "いぬ", "ねこ", "そら", "はな", "やま", "かわ", "ほん", "みず", "ほし",
+      "あめ", "ゆき", "くも", "うみ", "もり", "みち", "いえ", "まど", "つき", "かぜ",
+      "りんご", "いちご", "ばなな", "ぱん", "ごはん", "おちゃ", "ぷりん", "けーき", "おにぎり", "たまご",
+      "えんぴつ", "けしごむ", "のーと", "つくえ", "いす", "かばん", "ぼうし", "くつ", "とけい", "でんしゃ",
+      "がっこう", "ともだち", "せんせい", "きょう", "あした", "おはよう", "ありがとう", "こうえん", "さんぽ", "おえかき",
+      "たいよう", "にじ", "ひこうき", "くるま", "じてんしゃ", "でんき", "てれび", "げーむ", "おんがく", "どくしょ",
+      "きょうりゅう", "はっくつ", "ぷれぜんと", "しょっぷ", "おへや", "たからばこ", "まち", "ひろば", "ふんすい", "ろけっと",
+      "げんき", "えがお", "だいすき", "たのしい", "うれしい", "がんばる", "はやい", "ゆっくり", "いっしょ", "しんきろく",
+    ];
 
-export function dojoWords() {
-  return [...DOJO_WORDS];
-}
-export function typingWords(level) {
+    export function dojoWords(count = DOJO_WORDS.length, rng = Math.random) {
+      const rows = [...DOJO_WORDS];
+      for (let i = rows.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.max(0, Math.min(0.999999999, Number(rng()) || 0)) * (i + 1));
+        [rows[i], rows[j]] = [rows[j], rows[i]];
+      }
+      return rows.slice(0, Math.max(1, Math.min(rows.length, Number(count) || rows.length)));
+    }
+    export function typingWords(level) {
   return LEVEL_WORDS[Math.max(1, Math.min(30, level)) - 1];
 }
 export function validateTyping() {
