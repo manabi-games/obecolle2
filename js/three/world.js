@@ -5,7 +5,7 @@ import {
   animateCharacter,
   creatureModel,
   furniture,
-} from "./factories.js";
+} from "./factories.js?v=visual-9";
 import {
   FACILITIES,
   FRIENDS,
@@ -109,7 +109,7 @@ export class World {
       .map((id) => ITEMS.find((item) => item.id === id))
       .filter(Boolean),
       outfit = gifted.find((item) => item.type === "clothing"),
-      hat = gifted.find((item) => item.type === "accessories" && item.id.startsWith("hat_")),
+      hat = gifted.find((item) => item.type === "accessories" && !item.id.startsWith("glasses_")),
       glasses = gifted.find((item) => item.type === "accessories" && item.id.startsWith("glasses_"));
     return {
       ...friend.baseAppearance,
@@ -249,6 +249,9 @@ export class World {
       roof.rotation.y = Math.PI / 4;
       add("box", "#7b573f", [0.9, 1.25, 0.12], [0, 0.72, 1.36]);
       add("box", "#f0d887", [1.55, 0.55, 0.12], [0, 1.75, 1.4]);
+      // Keyboard keys make the training hall readable without hovering a label.
+      for (let i = 0; i < 5; i++)
+        add("box", i === 2 ? "#d46d60" : "#fff6dc", [0.18, 0.13, 0.07], [-0.48 + i * 0.24, 1.76, 1.48]);
       for (const x of [-1.25, 1.25]) {
         add("cylinder", "#925f43", [0.08, 1.45, 0.08], [x, 0.75, 1.5]);
         add("box", "#925f43", [0.5, 0.08, 0.08], [x, 1.45, 1.5]);
@@ -273,6 +276,9 @@ export class World {
           );
         add("box", "#89b8b8", [0.55, 0.95, 0.1], [x, 0.65, 1.03]);
       }
+      add("box", "#f9edce", [1.1, 0.56, 0.12], [0, 2.55, 1.14]);
+      add("box", "#d67e6a", [0.48, 0.36, 0.08], [0, 2.49, 1.22]);
+      add("ring", "#d67e6a", [0.16, 0.16, 0.1], [0, 2.72, 1.23]);
       this.add(g, f.x, 0, f.z);
       this.interact(g, f.id, f.name, 3.2);
       this.labels.at(-1).hoverOnly = true;
@@ -314,6 +320,8 @@ export class World {
       ).rotation.x = Math.PI / 2;
       add("box", "#65796f", [0.025, 0.18, 0.025], [0, h + 1.06, 0.51]);
       add("box", "#65796f", [0.14, 0.025, 0.025], [0.055, h + 1.0, 0.51]);
+      for (const x of [-0.2, 0.2]) add("box", "#f8f0dc", [0.38, 0.34, 0.06], [x, 1.75, 1.41]);
+      add("box", "#d5ad69", [0.055, 0.36, 0.08], [0, 1.75, 1.46]);
     }
     if (f.id === "typing") {
       add("ball", "#9cccd2", [1.05, 0.65, 1], [0, h + 0.55, 0]);
@@ -327,6 +335,15 @@ export class World {
           [0.25, 0.1, 0.06],
           [-0.35 + i * 0.35, 0.75, 1.42],
         );
+      add("box", "#4f786a", [1.35, 0.45, 0.13], [0, 1.65, 1.42]);
+      add("box", "#e4d9a5", [0.32, 0.22, 0.08], [-0.28, 1.66, 1.52]);
+      add("ball", "#e9dbc0", [0.11, 0.1, 0.06], [0.15, 1.66, 1.52]);
+    }
+    if (f.id === "mansion") {
+      for (const x of [-1.55, 0, 1.55])
+        add("box", "#f7d785", [1.14, 0.12, 0.18], [x, 3.87, 1.49]);
+      add("box", "#fff4da", [1.26, 0.47, 0.12], [0, 4.05, 1.46]);
+      add("roof", "#dd9b73", [0.52, 0.42, 0.5], [0, 4.42, 1.45]).rotation.y = Math.PI / 4;
     }
     for (const x of [-w / 2 - 0.3, w / 2 + 0.3]) {
       add("cylinder", "#b99879", [0.22, 0.35, 0.22], [x, 0.18, 1]);

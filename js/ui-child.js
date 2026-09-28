@@ -1,4 +1,5 @@
 import { ITEMS } from "./data/catalog.js";
+import { itemArt } from "./ui-visuals.js";
 
 const E = (x) =>
   String(x ?? "").replace(
@@ -74,8 +75,6 @@ const ANIMAL_EMOJI = {
   えらすもさうるす: "🦕",
 };
 
-const FURNITURE_EMOJI = ["🛋️", "▰", "🪑", "📚", "🛏️", "💡", "🕒", "🪴", "💻", "🗄️"];
-
 export function atlasSvg(layout, name, hidden = false) {
   if (!layout) return "";
   const cls = hidden ? "creature-atlas-svg silhouette" : "creature-atlas-svg";
@@ -113,8 +112,11 @@ export function appearancePortrait(
     cls = `${hidden ? "friend-avatar silhouette" : "friend-avatar"} hair-${hairStyle}`,
     glasses = appearance.glasses || appearance.eyewear
       ? '<i class="friend-glasses"></i>'
-      : "";
-  return `<span class="${cls}" role="img" aria-label="${hidden ? "まだ みつけていない あばたー" : E(label)}" style="--hair:${HAIR[hairIndex]};--skin:${SKIN[skinIndex]};--shirt:${shirt}"><i class="friend-hair"></i><i class="friend-head"><b class="friend-eye left"></b><b class="friend-eye right"></b><b class="friend-mouth"></b>${glasses}</i><i class="friend-body"></i></span>`;
+      : "",
+    outfitItem = ITEMS.find((i) => i.id === outfitId),
+    hatItem = ITEMS.find((i) => i.id === (appearance.hat || appearance.headwear)),
+    costume = outfitItem?.visual || "hoodie";
+  return `<span class="${cls} costume-${costume}" role="img" aria-label="${hidden ? "まだ みつけていない あばたー" : E(label)}" style="--hair:${HAIR[hairIndex]};--skin:${SKIN[skinIndex]};--shirt:${shirt}"><i class="friend-hair"></i><i class="friend-head"><b class="friend-eye left"></b><b class="friend-eye right"></b><b class="friend-mouth"></b>${glasses}</i><i class="friend-body"><b class="friend-costume-detail"></b></i>${hatItem ? `<i class="friend-hat hat-${hatItem.visual || 'cap'}" style="--hat-color:${hatItem.color}"></i>` : ""}</span>`;
 }
 
 export function friendPortrait(friend, hidden = false) {
@@ -132,23 +134,5 @@ export function itemPreview(item, hidden = false) {
   const color = item.color || "#8fb9ac",
     hiddenClass = hidden ? " silhouette" : "",
     label = hidden ? "まだ もっていない あいてむ" : E(item.name);
-  if (item.type === "clothing") {
-    const shape = Number(item.shape || 0) % 5;
-    return `<span class="item-preview wearable-preview clothing-preview clothing-shape-${shape}${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><i class="cloth-main"></i><i class="cloth-detail"></i></span>`;
-  }
-  if (item.type === "accessories" && item.id?.startsWith("hat_")) {
-    const shape = Number(item.shape || 0) % 5;
-    return `<span class="item-preview wearable-preview hat-preview hat-shape-${shape}${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><i class="hat-main"></i><i class="hat-detail"></i></span>`;
-  }
-  if (item.type === "accessories") {
-    const shape = Number(item.shape || 0) % 2;
-    return `<span class="item-preview wearable-preview glasses-preview glasses-shape-${shape}${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><i></i><i></i></span>`;
-  }
-  let emoji = "✦";
-  if (item.id?.startsWith("rod_")) emoji = "🎣";
-  else if (item.type === "wallpaper") emoji = "▦";
-  else if (item.type === "floor") emoji = "▰";
-  else if (item.type === "furniture")
-    emoji = FURNITURE_EMOJI[item.shape ?? 0] || "🪑";
-  return `<span class="item-preview${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}"><span>${emoji}</span></span>`;
+  return `<span class="item-preview toy-preview${hiddenClass}" style="--item-color:${color}" role="img" aria-label="${label}">${itemArt(item)}</span>`;
 }

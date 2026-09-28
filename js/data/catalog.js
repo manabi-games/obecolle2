@@ -465,6 +465,40 @@ const furnitureTypes = [
   "PCですく",
   "かざるだな",
 ];
+const COSTUMES = [
+  ["いつもの ぱーかー", "hoodie"], ["やきゅうの せんしゅ", "baseball"],
+  ["うちゅうひこうし", "astronaut"], ["にんじゃ", "ninja"],
+  ["かいぞく", "pirate"], ["ちいさな こっく", "chef"],
+  ["たんけんか", "explorer"], ["きょうりゅう ぱーかー", "dinosaur"],
+  ["ほしの ぱじゃま", "pajamas"], ["れーさー", "racer"],
+  ["はかせ", "scientist"], ["おうさま", "royal"],
+  ["まちの ひーろー", "hero"], ["おまつりの はっぴ", "festival"],
+  ["ほんずきの がくしゃ", "scholar"], ["うみの せんちょう", "sailor"],
+  ["ろぼっと すーつ", "robot"], ["あめの れいんこーと", "raincoat"],
+  ["さっかーの せんしゅ", "soccer"], ["もりの ようせい", "forest"],
+  ["ゆきの ぼうけんか", "explorer"], ["ほのおの にんじゃ", "ninja"],
+  ["つきの うちゅうふく", "astronaut"], ["きんいろの かいぞく", "pirate"],
+  ["にじの ひーろー", "hero"], ["はなびの はっぴ", "festival"],
+  ["しんかいの せんちょう", "sailor"], ["きょうりゅう はかせ", "scientist"],
+  ["ほしの まほうつかい", "scholar"], ["たいようの れーさー", "racer"],
+  ["おうごんの おうさま", "royal"], ["みらいの ろぼっと", "robot"],
+  ["もりの きょうりゅう", "dinosaur"], ["ゆめの ぱじゃま", "pajamas"],
+  ["うみの こっく", "chef"], ["そらの やきゅうせんしゅ", "baseball"],
+  ["ひかりの ようせい", "forest"], ["あおぞらの れいんこーと", "raincoat"],
+  ["せかいの さっかーせんしゅ", "soccer"], ["でんせつの たんけんか", "explorer"],
+];
+const HATS = [
+  ["やきゅう きゃっぷ", "cap"], ["むぎわらぼう", "straw"],
+  ["たんけんぼう", "explorer"], ["おうかん", "crown"],
+  ["はかせぼう", "graduate"], ["ろぼっと へるめっと", "helmet"],
+  ["うちゅう へるめっと", "space"], ["にんじゃ ずきん", "ninja"],
+  ["かいぞくぼう", "pirate"], ["どうぶつみみ", "ears"],
+  ["きょうりゅうふーど", "dino"], ["おまつり はちまき", "headband"],
+  ["こっくぼう", "chef"], ["せんちょうぼう", "sailor"],
+  ["ほしの とんがりぼう", "wizard"], ["おはなの かんむり", "flower"],
+  ["おうごんの かぶと", "helmet"], ["ひかりの みみ", "ears"],
+  ["にじの かんむり", "crown"], ["ゆうしゃの ぼうし", "explorer"],
+];
 export const ITEMS = [
   ...Array.from({ length: 60 }, (_, i) => ({
     id: "furniture_" + i,
@@ -483,27 +517,15 @@ export const ITEMS = [
     price: 150 + (i % 5) * 50,
     rank: 3 + Math.floor(i / 10),
     theme: Math.floor(i / 10),
+    visual: furnitureTypes[i % 10],
     rare: i >= 40,
   })),
   ...Array.from({ length: 40 }, (_, i) => ({
     id: "clothing_" + i,
-    name:
-      ["ぱーかー", "Tしゃつ", "すうぇっと", "しゃつ", "たんけんふく"][
-        Math.floor(i / 8)
-      ] +
-      "・" +
-      [
-        "あおみどり",
-        "あお",
-        "もも",
-        "きいろ",
-        "みどり",
-        "むらさき",
-        "だいだい",
-        "ぐれー",
-      ][i % 8],
+    name: COSTUMES[i][0],
     type: "clothing",
     shape: Math.floor(i / 8),
+    visual: COSTUMES[i][1],
     color: COLORS[i % 8],
     price: 50 + Math.floor(i / 8) * 60,
     rank: 3 + Math.floor(i / 8),
@@ -511,18 +533,10 @@ export const ITEMS = [
   })),
   ...Array.from({ length: 20 }, (_, i) => ({
     id: "hat_" + i,
-    name:
-      [
-        "きゃっぷ",
-        "にっとぼう",
-        "たんけんぼう",
-        "さかなぼう",
-        "きょうりゅうぼう",
-      ][Math.floor(i / 4)] +
-      " " +
-      ((i % 4) + 1),
+    name: HATS[i][0],
     type: "accessories",
     shape: Math.floor(i / 4),
+    visual: HATS[i][1],
     color: COLORS[i % 8],
     price: 80 + Math.floor(i / 4) * 40,
     rank: 3 + Math.floor(i / 4),
@@ -530,9 +544,10 @@ export const ITEMS = [
   })),
   ...Array.from({ length: 10 }, (_, i) => ({
     id: "glasses_" + i,
-    name: (i < 5 ? "まる" : "しかく") + "めがね " + ((i % 5) + 1),
+    name: ["まるめがね", "しかくめがね", "ほしの めがね", "はーとの めがね", "かための めがね", "きらきら めがね", "はかせの めがね", "まっくろ さんぐらす", "おはなの めがね", "ぼうけん めがね"][i],
     type: "accessories",
     shape: i < 5 ? 0 : 1,
+    visual: ["round", "square", "star", "heart", "monocle", "round", "square", "sunglasses", "flower", "goggles"][i],
     color: COLORS[i % 8],
     price: 80,
     rank: 3,
@@ -556,9 +571,9 @@ export const ITEMS = [
     rank: 3,
     rare: i >= 8,
   })),
-  { id: "dojo_reward_10", name: "いなずま はちまき", type: "accessories", shape: 2, color: "#efc34e", price: 0, rank: 1, rare: true, rewardOnly: true },
-  { id: "dojo_reward_20", name: "はやての どうぎ", type: "clothing", shape: 3, color: "#d96d58", price: 0, rank: 1, rare: true, rewardOnly: true },
-  { id: "dojo_reward_60", name: "しんきろく ぼうし", type: "accessories", shape: 4, color: "#6e9fd1", price: 0, rank: 1, rare: true, rewardOnly: true },
+  { id: "dojo_reward_10", name: "いなずま はちまき", type: "accessories", shape: 2, visual: "headband", color: "#efc34e", price: 0, rank: 1, rare: true, rewardOnly: true },
+  { id: "dojo_reward_20", name: "はやての どうぎ", type: "clothing", shape: 3, visual: "ninja", color: "#d96d58", price: 0, rank: 1, rare: true, rewardOnly: true },
+  { id: "dojo_reward_60", name: "しんきろく ぼうし", type: "accessories", shape: 4, visual: "wizard", color: "#6e9fd1", price: 0, rank: 1, rare: true, rewardOnly: true },
 ];
 export const TOWN_DECOR = [
   { id: "town_flower", name: "にじいろ かだん", icon: "🌷", shape: 0, color: "#e989a3", accent: "#f3ca63", price: 40, rank: 1, x: -12.5, z: 7.5 },

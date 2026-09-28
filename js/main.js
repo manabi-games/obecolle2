@@ -2,7 +2,7 @@ import * as D from "./data/catalog.js";
 import * as R from "./systems/rules.js";
 import { SaveManager, validateSaveData } from "./core/save.js";
 import { AudioManager } from "./core/audio.js";
-import { World } from "./three/world.js";
+import { World } from "./three/world.js?v=visual-9";
 import { games } from "./games.js";
 import { validateTyping } from "./systems/typing.js";
 import { doors, walkable, findPath, findPathToDoor } from "./systems/walking.js";
@@ -16,6 +16,7 @@ import { resetTransientState } from "./systems/session-state.js";
 import { EYE_NAMES, eyePreview } from "./ui-face.js";
 import { artLayout } from "./data/art-layout.js";
 import { atlasSvg, animalIcon, appearancePortrait, friendPortrait, itemPreview } from "./ui-child.js";
+import { townArt } from "./ui-visuals.js";
 const E = (x) =>
   String(x ?? "").replace(
     /[&<>"']/g,
@@ -163,17 +164,16 @@ class Game {
     if (item?.rewardOnly) return true;
     const id = String(item?.id || ""),
       n = Number(id.split("_")[1]);
-    if (item?.type === "furniture") return Number.isInteger(n) && n < 10;
-    if (item?.type === "clothing")
-      return Number.isInteger(n) && n % 8 === 0 && n <= 32;
-    if (id.startsWith("hat_")) return Number.isInteger(n) && n % 4 === 0;
-    if (id.startsWith("glasses_")) return n === 0 || n === 5;
+    if (item?.type === "furniture") return Number.isInteger(n) && n % 10 < 6;
+    if (item?.type === "clothing") return true;
+    if (id.startsWith("hat_")) return true;
+    if (id.startsWith("glasses_")) return true;
     if (item?.type === "wallpaper" || item?.type === "floor")
       return Number.isInteger(n) && n < 4;
     return true;
   }
   townDecorPreview(item) {
-    return `<div class="town-decor-preview"><span>${E(item.icon || "✨")}</span><small>${E(item.name)}</small></div>`;
+    return `<div class="town-decor-preview">${townArt(item)}</div>`;
   }
   async collectTreasure(index) {
     index = Number(index);
@@ -512,12 +512,16 @@ class Game {
       .map((id) => D.ITEMS.find((item) => item.id === id))
       .filter(Boolean),
       outfit = gifted.find((item) => item.type === "clothing"),
+      hat = gifted.find(
+        (item) => item.type === "accessories" && !item.id.startsWith("glasses_"),
+      ),
       glasses = gifted.find(
         (item) => item.type === "accessories" && item.id.startsWith("glasses_"),
       );
     return {
       ...friend.baseAppearance,
       outfit: outfit?.id || "clothing_" + friend.defaultOutfit,
+      ...(hat ? { hat: hat.id } : {}),
       ...(glasses ? { glasses: glasses.id } : {}),
     };
   }
@@ -534,7 +538,7 @@ class Game {
       const furniture = Object.values(this.s.room.slots || {})
         .map((id) => D.ITEMS.find((item) => item.id === id))
         .filter(Boolean)
-        .slice(0, 3);
+        .slice(-4);
       return {
         wall: D.ITEMS.find((i) => i.id === this.s.room.wallpaper)?.color || "#d8e3c6",
         floor: D.ITEMS.find((i) => i.id === this.s.room.floor)?.color || "#d9bd95",
@@ -569,18 +573,18 @@ class Game {
   }
   mansion() {
     this.setScene("mansion");
-    const friends = D.ACTIVE_FRIENDS.filter((f) => !!this.s.friends[f.id]),
-      rows = [{ id: "self", name: this.s.player.name, self: true }, ...friends];
+    const rows = [{ id: "self", name: this.s.player.name, self: true },
+      ...D.ACTIVE_FRIENDS.map((friend) => ({ ...friend, waiting: !this.s.friends[friend.id] }))];
     this.panel(
       `<div class="row spread panel-heading mansion-heading"><div><h2>おべこれまんしょん</h2><p>へやの なかを みて、いきたい へやを えらぼう。</p></div><button data-a="island">まちへ</button></div><div class="mansion-building-grid">${rows.map((row) => {
         const p = this.mansionRoomPreview(row),
           action = row.self ? "resident:self" : `resident:${row.id}`,
-          avatar = appearancePortrait(p.appearance, null, false, row.self ? this.s.player.name : row.name),
+          avatar = row.waiting ? '<span class="mini-room-awaiting">＋</span>' : appearancePortrait(p.appearance, null, false, row.self ? this.s.player.name : row.name),
           furniture = p.furniture
             .map((item, i) => `<span class="mini-furniture mini-furniture-${i + 1}">${itemPreview(item)}</span>`)
             .join("");
-        return `<button class="mansion-unit ${row.self ? "self-room" : "friend-room"}" data-a="${action}" style="--room-wall:${p.wall};--room-floor:${p.floor}"><span class="mini-room-stage"><span class="mini-room-wall"></span><span class="mini-room-floor"></span><span class="mini-room-window"></span>${furniture}<span class="mini-room-resident">${avatar}</span></span><span class="mini-room-label"><strong>${E(p.label)}</strong><small>${E(p.sub)}</small></span></button>`;
-      }).join("")}</div>`,
+        return `<button class="mansion-unit ${row.self ? "self-room" : row.waiting ? "waiting-room" : "friend-room"}" data-a="${action}" ${row.waiting ? "disabled" : ""} style="--room-wall:${p.wall};--room-floor:${p.floor}"><span class="mini-room-stage"><span class="mini-room-wall"></span><span class="mini-room-floor"></span><span class="mini-room-window"></span>${furniture}<span class="mini-room-resident">${avatar}</span></span><span class="mini-room-label"><strong>${row.waiting ? "あいている へや" : E(p.label)}</strong><small>${row.waiting ? "ともだちを まとう" : E(p.sub)}</small></span></button>`;
+      }).join("")}<div class="mansion-lobby" aria-label="まんしょんの ろびー"><span class="lobby-roof"></span><span class="lobby-door"></span><span class="lobby-plants">✿　✿</span><strong>まんしょんの ろびー</strong></div></div>`,
       "wide child-grid-panel mansion-panel mansion-cutaway-panel",
     );
   }
@@ -712,8 +716,8 @@ class Game {
     const typeName = (item) =>
       item.type === "furniture" ? "かぐ" : item.type === "clothing" ? "ふく" : "こもの";
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>${E(friend.name)}へ ぷれぜんと</h2><p>おくった かぐは おへやに じどうで かざられるよ。ふくや ぼうしは そのこが みにつけるよ。</p></div><button data-a="resident:${id}">もどる</button></div><div class="grid room-item-grid gift-grid">${items.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card" data-a="give:${id}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>🎁 ${typeName(i)}</small></button>`).join("") || '<div class="empty-room-message">いま おくれる ものが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "giftpage") : ""}`,
-      "wide child-grid-panel gift-panel room-edit-panel",
+      `<div class="row spread panel-heading"><div><h2>${E(friend.name)}へ ぷれぜんと</h2><p>おくった かぐは おへやに じどうで かざられるよ。ふくや ぼうしは そのこが みにつけるよ。</p></div><button data-a="resident:${id}">もどる</button></div><div class="grid room-item-grid gift-grid ${items.slice(page * pageSize, page * pageSize + pageSize).length <= 3 ? "few-items" : ""}">${items.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card" data-a="give:${id}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>🎁 ${typeName(i)}</small></button>`).join("") || '<div class="empty-room-message">いま おくれる ものが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "giftpage") : ""}`,
+      "wide child-grid-panel gift-panel room-edit-panel compact-item-panel",
     );
   }
   together(id) {
@@ -948,7 +952,7 @@ class Game {
         category === "town"
           ? !!this.s.inventory.specialItems[i.id]
           : i.type === "furniture"
-            ? false
+            ? false // furniture can be bought repeatedly; quantity is shown separately
             : ["wallpaper", "floor"].includes(i.type)
               ? !!this.s.inventory.specialItems[i.id]
               : !!this.s.inventory[i.type]?.[i.id];
@@ -969,7 +973,10 @@ class Game {
           hasIt = owned(i),
           locked = this.s.progression.manabiRank < i.rank || !!requirement || this.s.progression.coins < i.price || hasIt,
           preview = category === "town" ? this.townDecorPreview(i) : itemPreview(i);
-        return `<div class="tile shop-tile ${category === "town" ? "town-shop-tile" : ""}"><div class="shop-preview">${preview}</div><span class="name">${E(i.name)}</span><small>${i.price} こいん</small><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.manabiRank < i.rank ? `らんく${i.rank}` : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
+        const equipped = i.id === this.s.player.appearance.outfit || i.id === this.s.player.appearance.hat || i.id === this.s.player.appearance.glasses || i.id === this.s.room.wallpaper || i.id === this.s.room.floor;
+        const count = i.type === "furniture" ? (this.s.inventory.furniture[i.id] || 0) : 0;
+        const state = equipped ? "つかってる" : count ? `${count}こ もってる` : hasIt ? "もってる" : this.s.progression.manabiRank < i.rank ? `らんく${i.rank}` : requirement ? E(requirement) : this.s.progression.coins < i.price ? "こいんぶそく" : "かえる";
+        return `<div class="tile shop-tile ${category === "town" ? "town-shop-tile" : ""} ${i.rare ? "rare-item" : ""} ${equipped ? "equipped-item" : hasIt ? "owned-item" : ""}"><div class="shop-preview">${preview}</div><span class="name">${E(i.name)}</span><small class="shop-price">◉ ${i.price}</small><span class="shop-state">${i.rare ? "★ れあ · " : ""}${state}</span><button data-a="buy:${i.id}" ${locked ? "disabled" : ""}>${hasIt ? "✓ もってる" : this.s.progression.manabiRank < i.rank ? `らんく${i.rank}` : requirement ? "じょうけん まだ" : this.s.progression.coins < i.price ? "こいんが たりない" : "かう"}</button></div>`;
       }).join("")}</div>${pages > 1 ? this.pagination(page, pages, "shoppage") : ""}`,
       "wide child-grid-panel shop-panel compact-shop-panel",
     );
@@ -995,7 +1002,7 @@ class Game {
           const item = D.ITEMS.find((x) => x.id === this.s.room.slots[i]);
           return `<button class="tile room-location-card" data-a="decorateslot:${i}"><strong>${i + 1}. ${slotNames[i]}</strong><div class="room-location-preview">${item ? itemPreview(item) : '<span class="empty-slot">＋</span>'}</div><small>${item ? E(item.name) : "あいている"}</small></button>`;
         }).join("")}</div>`,
-        "wide child-grid-panel room-edit-panel",
+        "wide child-grid-panel room-edit-panel compact-room-panel",
       );
       return;
     }
@@ -1023,8 +1030,8 @@ class Game {
     this.decoratePage = page;
     const current = D.ITEMS.find((x) => x.id === currentId);
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>${slot + 1}. ${slotNames[slot]}</h2><p>ここに おく かぐを えらぼう。</p></div><button data-a="decorate">ばしょを えらぶ</button></div><div class="room-edit-current"><span>いま</span><strong>${current ? E(current.name) : "なにも なし"}</strong></div><div class="grid room-item-grid">${rows.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card ${i.id === currentId ? "selected" : ""}" data-a="placeitem:${slot}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${i.id === currentId ? "✓ いま ここ" : "ここに おく"}</small></button>`).join("") || '<div class="empty-room-message">まだ おける かぐが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "decoratepage") : ""}<div class="room-edit-actions">${current ? `<button data-a="clearslot:${slot}">この かぐを かたづける</button>` : ""}<button data-a="room">おへやを みる</button></div>`,
-      "wide child-grid-panel room-edit-panel",
+      `<div class="row spread panel-heading"><div><h2>${slot + 1}. ${slotNames[slot]}</h2><p>ここに おく かぐを えらぼう。</p></div><button data-a="decorate">ばしょを えらぶ</button></div><div class="room-edit-current"><span>いま</span><strong>${current ? E(current.name) : "なにも なし"}</strong></div><div class="grid room-item-grid ${rows.slice(page * pageSize, page * pageSize + pageSize).length <= 3 ? "few-items" : ""}">${rows.slice(page * pageSize, page * pageSize + pageSize).map((i) => `<button class="tile room-item-card ${i.id === currentId ? "selected" : ""}" data-a="placeitem:${slot}:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${i.id === currentId ? "✓ いま ここ" : "ここに おく"}</small></button>`).join("") || '<div class="empty-room-message">まだ おける かぐが ないよ。</div>'}</div>${pages > 1 ? this.pagination(page, pages, "decoratepage") : ""}<div class="room-edit-actions">${current ? `<button data-a="clearslot:${slot}">この かぐを かたづける</button>` : ""}<button data-a="room">おへやを みる</button></div>`,
+      "wide child-grid-panel room-edit-panel compact-room-panel",
     );
   }
   async placeItem(slot, id) {
@@ -1067,14 +1074,14 @@ class Game {
     const selected = (i) =>
       i.type === "clothing"
         ? this.s.player.appearance.outfit === i.id
-        : i.id.startsWith("hat_")
+        : i.type === "accessories" && !i.id.startsWith("glasses_")
           ? this.s.player.appearance.hat === i.id
           : i.id.startsWith("glasses_")
             ? this.s.player.appearance.glasses === i.id
             : this.s.room[i.type] === i.id;
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>きせかえ・かべ・ゆか</h2><p>もっているものから えらべるよ。</p></div><button data-a="room">おへやへ</button></div><div class="tabs">${categories.map(([id, name]) => `<button class="${id === category ? "active" : ""}" data-a="wardrobecat:${id}">${name}</button>`).join("")}</div><div class="grid wardrobe-grid room-item-grid">${rows.slice(page * 6, page * 6 + 6).map((i) => `<button class="tile ${selected(i) ? "selected" : ""}" data-a="wear:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${selected(i) ? "✓ いま つかっている" : "つかう"}</small></button>`).join("") || "<p>まだ もっていないよ。</p>"}</div>${pages > 1 ? this.pagination(page, pages, "wardrobepage") : ""}${category === "accessories" ? '<p><button data-a="removeaccessories">ぼうし・めがねを はずす</button></p>' : ""}`,
-      "wide child-grid-panel wardrobe-panel",
+      `<div class="row spread panel-heading"><div><h2>きせかえ・かべ・ゆか</h2><p>もっているものから えらべるよ。</p></div><button data-a="room">おへやへ</button></div><div class="tabs">${categories.map(([id, name]) => `<button class="${id === category ? "active" : ""}" data-a="wardrobecat:${id}">${name}</button>`).join("")}</div><div class="grid wardrobe-grid room-item-grid ${rows.slice(page * 6, page * 6 + 6).length <= 3 ? "few-items" : ""}">${rows.slice(page * 6, page * 6 + 6).map((i) => `<button class="tile ${selected(i) ? "selected" : ""}" data-a="wear:${i.id}">${itemPreview(i)}<span class="name">${E(i.name)}</span><small>${selected(i) ? "✓ いま つかっている" : "つかう"}</small></button>`).join("") || "<p>まだ もっていないよ。</p>"}</div>${pages > 1 ? this.pagination(page, pages, "wardrobepage") : ""}${category === "accessories" ? '<p><button data-a="removeaccessories">ぼうし・めがねを はずす</button></p>' : ""}`,
+      "wide child-grid-panel wardrobe-panel compact-item-panel",
     );
   }
   async wear(id) {
@@ -1087,9 +1094,8 @@ class Game {
     if (!owned) throw Error("もっていない あいてむだよ");
     if (item.type === "clothing") this.s.player.appearance.outfit = id;
     else if (item.type === "accessories") {
-      if (id.startsWith("hat_")) this.s.player.appearance.hat = id;
-      else if (id.startsWith("glasses_")) this.s.player.appearance.glasses = id;
-      else throw Error("みにつけられない あいてむだよ");
+      if (id.startsWith("glasses_")) this.s.player.appearance.glasses = id;
+      else this.s.player.appearance.hat = id;
     } else this.s.room[item.type] = id;
     await this.commit();
     this.room();

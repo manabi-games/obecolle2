@@ -75,7 +75,8 @@ export function validateSaveData(s) {
     const id = s.player.appearance[key];
     if (
       id !== undefined &&
-      (!String(id).startsWith(prefix) ||
+      (!(String(id).startsWith(prefix) ||
+          (key === "hat" && ["dojo_reward_10", "dojo_reward_60"].includes(id))) ||
         ITEMS.find((x) => x.id === id)?.type !== "accessories" ||
         !s.inventory.accessories[id])
     )

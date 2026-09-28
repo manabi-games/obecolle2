@@ -3090,3 +3090,212 @@ body.island-interactive #toast {
   .mansion-building-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
   .dig-map-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); }
 }
+
+/* Toy-art pass: compact cards, shared SVG language and visible room personality. */
+:root {
+  --toy-ink: #40545b;
+  --toy-cream: #fff9e9;
+  --toy-gap: 8px;
+  --toy-radius: 12px;
+}
+.toy-preview { padding: 2px; overflow: hidden; }
+.toy-art { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 1px #4b584c30); }
+.town-decor-preview .toy-art { width: 90%; height: 90%; }
+.compact-shop-panel .shop-tile {
+  position: relative;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: minmax(0,1fr) auto auto;
+  align-content: stretch;
+  text-align: left;
+  padding: 7px 9px !important;
+  gap: 1px 5px;
+  background: linear-gradient(155deg, #fffdf2, #f7ead0);
+  border: 2px solid #cfb98e;
+  border-radius: var(--toy-radius);
+}
+.compact-shop-panel .shop-tile.rare-item {
+  background: linear-gradient(155deg, #fff9e4, #fce5b5);
+  border-color: #e4b859;
+}
+.compact-shop-panel .shop-tile.equipped-item { border-color: #4eb6a3; }
+.compact-shop-panel .shop-tile.owned-item { background: linear-gradient(155deg, #f6f9ea, #e7f1dc); }
+.compact-shop-panel .shop-preview {
+  grid-column: 1 / 3;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.compact-shop-panel .shop-preview .item-preview,
+.compact-shop-panel .town-decor-preview {
+  width: min(100%, 106px);
+  height: min(12vh, 72px);
+  margin: 0;
+}
+.compact-shop-panel .shop-tile .name {
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px !important;
+  font-weight: 900;
+}
+.compact-shop-panel .shop-price { justify-self: end; color: #805b36; font-weight: 900; }
+.compact-shop-panel .shop-state { justify-self: start; align-self: center; color: #438d7c; font-size: 11px; font-weight: 900; }
+.compact-shop-panel .shop-tile.rare-item .shop-state { color: #ae6c31; }
+.compact-shop-panel .shop-tile button { justify-self: end; padding: 3px 10px !important; min-height: 25px; }
+.compact-shop-panel .shop-tile button:disabled { opacity: .72; }
+.compact-shop-panel .compact-shop-grid { flex: 1; min-height: 0; }
+.compact-shop-panel .shop-tabs { flex: 0 0 auto; }
+.compact-shop-panel .pagination { flex: 0 0 auto; margin-top: 4px; }
+
+.friend-body { border: 2px solid #40545b66; box-sizing: border-box; }
+.friend-costume-detail { position: absolute; display: block; left: 50%; top: 1px; transform: translateX(-50%); width: 14px; height: 16px; border-radius: 3px; background: #fff0d4; border: 1px solid #566c6d; }
+.costume-baseball .friend-costume-detail,
+.costume-soccer .friend-costume-detail,
+.costume-racer .friend-costume-detail { width: 12px; height: 21px; top: 0; background: #f5f6e9; }
+.costume-ninja .friend-costume-detail,
+.costume-pirate .friend-costume-detail,
+.costume-sailor .friend-costume-detail { width: 34px; height: 7px; top: 3px; background: #f0d57d; transform: translateX(-50%) rotate(-10deg); }
+.costume-astronaut .friend-costume-detail,
+.costume-robot .friend-costume-detail { width: 24px; height: 15px; background: #bde5eb; border-radius: 2px; }
+.costume-dinosaur .friend-costume-detail,
+.costume-forest .friend-costume-detail { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 14px solid #e8d471; background: none; }
+.costume-royal .friend-costume-detail,
+.costume-hero .friend-costume-detail { width: 18px; height: 18px; background: #efd278; transform: translateX(-50%) rotate(45deg); }
+.friend-hat { position: absolute; z-index: 5; left: 7px; top: 4px; width: 54px; height: 19px; background: var(--hat-color); border: 2px solid #40545b; border-radius: 80% 80% 16% 16%; box-sizing: border-box; }
+.friend-hat.hat-crown { top: 0; left: 12px; width: 44px; height: 22px; background: #efca61; clip-path: polygon(0 26%, 22% 60%, 50% 0, 78% 60%, 100% 26%, 90% 100%, 10% 100%); }
+.friend-hat.hat-ears::before,.friend-hat.hat-ears::after { content:"";position:absolute;top:-11px;width:13px;height:16px;background:var(--hat-color);border:2px solid #40545b;border-radius:70% 70% 0 0; }
+.friend-hat.hat-ears::before { left:4px;transform:rotate(-20deg); }.friend-hat.hat-ears::after { right:4px;transform:rotate(20deg); }
+.friend-hat.hat-wizard { height: 25px; top: -5px; clip-path: polygon(50% 0, 81% 80%, 100% 100%, 0 100%, 19% 80%); }
+.friend-hat.hat-chef { height: 22px; top: -4px; background: #fff7e7; border-radius: 50% 50% 12% 12%; }
+.friend-hat.hat-headband { top: 13px; height: 8px; border-radius: 4px; }
+.friend-hat.hat-space { top: 0; height: 43px; background: #a7d8e3a8; border-radius: 50%; }
+.friend-hat.hat-dino::after { content:"";position:absolute;left:20px;top:-10px;width:13px;height:13px;background:#e7d57d;clip-path:polygon(50% 0,100% 100%,0 100%); }
+
+.mansion-cutaway-panel { background: #e6d2aa !important; border: 5px solid #ae8060 !important; }
+.mansion-building-grid { padding: 4px; gap: 5px; background: #8f6750; border: 3px solid #7d5b46; border-radius: 8px; }
+.mansion-unit { border-radius: 2px !important; border: 2px solid #8b6849 !important; box-shadow: inset 0 0 0 2px #fff5dd50; }
+.mansion-unit.self-room { border-color: #e7c059 !important; }
+.mansion-unit.waiting-room { opacity: 1 !important; filter: saturate(.55); cursor: default; }
+.mansion-unit.waiting-room .mini-room-stage { opacity: .72; }
+.mansion-unit.waiting-room .mini-room-label { background: #ece3d0; }
+.mansion-lobby { position: relative; min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: end center; background: linear-gradient(#f5e8c6 0 71%, #cfb58a 71%); border: 3px solid #8b6849; box-shadow: inset 0 0 0 2px #fff4d8; color: #5b654e; }
+.lobby-roof { position: absolute; left: 12%; right: 12%; top: 12%; height: 15%; background: #be8465; border: 3px solid #8b6849; border-radius: 70% 70% 5px 5px; }
+.lobby-door { position: absolute; left: 37%; width: 26%; height: 52%; bottom: 14%; background: linear-gradient(90deg,#8fc8ca 0 48%,#eedab4 48% 52%,#8fc8ca 52%); border: 5px solid #e7cfa1; border-radius: 45% 45% 2px 2px; }
+.lobby-plants { position: absolute; bottom: 17%; left: 7%; right: 7%; text-align: center; letter-spacing: 5vw; color: #6fa87c; font-size: 17px; }
+.mansion-lobby strong { position: relative; z-index: 2; display: block; width: 100%; padding: 2px; text-align: center; background: #fff3d9; font-size: 11px; }
+.mini-room-awaiting { display: grid; place-items: center; width: 50px; height: 50px; border: 3px dashed #638e90; border-radius: 50%; background: #eaf8edaa; color: #4f8e8a; font-size: 32px; font-weight: 900; }
+.mini-room-stage { background: var(--room-wall); }
+.mini-room-wall { background: repeating-linear-gradient(90deg, transparent 0 22px, #ffffff33 22px 24px),var(--room-wall); }
+.mini-room-floor { background: repeating-linear-gradient(90deg, transparent 0 25px, #5c4c3330 25px 27px),var(--room-floor); }
+.mini-room-resident { left: 51%; bottom: 3%; transform: translateX(-50%) scale(.77); }
+.mini-furniture { transform: scale(.73); }
+.mini-furniture-3 { transform: scale(.6); }
+.mini-furniture-4 { right: 22%; bottom: 25%; transform: scale(.52); }
+.mini-furniture .item-preview { width: 68px; height: 54px; background: transparent; box-shadow: none; }
+.mini-room-label { background: #fdf2d9; }
+
+@media (max-height: 650px) {
+  .compact-shop-panel .shop-preview .item-preview,
+  .compact-shop-panel .town-decor-preview { height: 46px; width: 70px; }
+  .compact-shop-panel .shop-tile { padding: 4px 7px !important; }
+  .compact-shop-panel .shop-tile .name { font-size: 12px !important; }
+  .compact-shop-panel .shop-state { font-size: 10px; }
+  .compact-shop-panel .shop-tile button { font-size: 11px; min-height: 22px; }
+  .mini-furniture .item-preview { width: 56px; height: 45px; }
+  .mini-room-resident { transform: translateX(-50%) scale(.64); }
+  .mini-furniture { transform: scale(.56); }
+  .mini-furniture-3 { transform: scale(.45); }
+  .mini-furniture-4 { transform: scale(.4); }
+}
+
+.panel.child-grid-panel.compact-school-panel,
+.panel.child-grid-panel.all-levels-panel,
+.panel.child-grid-panel.dojo-menu-panel {
+  height: max-content !important;
+  max-height: calc(100vh - 78px) !important;
+  overflow: hidden !important;
+}
+.compact-school-panel .school-menu-grid { margin: 10px auto 4px; }
+.compact-school-panel .compact-subject { min-height: 125px !important; max-height: 135px; }
+.all-level-grid > button:disabled { opacity: .78; }
+.all-level-grid .step-title, .all-level-grid small { font-size: 12px; }
+.panel.child-grid-panel.compact-item-panel {
+  width: min(920px, 96vw) !important;
+  height: max-content !important;
+  max-height: calc(100vh - 78px) !important;
+  overflow: hidden !important;
+}
+.compact-item-panel .room-item-grid {
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, 138px) !important;
+  gap: 8px;
+}
+.compact-item-panel .room-item-grid.few-items { grid-template-rows: 138px !important; }
+.compact-item-panel .room-item-grid .tile { padding: 6px !important; }
+.compact-item-panel .room-item-grid .item-preview { width: 92px; height: 70px; }
+.compact-item-panel .room-item-grid .name { font-size: 14px; }
+.compact-item-panel .room-item-grid small { font-size: 12px; }
+@media (max-height: 650px) {
+  .compact-shop-panel .shop-preview .item-preview,
+  .compact-shop-panel .town-decor-preview { width: 100px; height: 68px; }
+  .compact-item-panel .room-item-grid { grid-template-rows: repeat(2, 118px) !important; }
+  .compact-item-panel .room-item-grid.few-items { grid-template-rows: 118px !important; }
+  .compact-item-panel .room-item-grid .item-preview { width: 76px; height: 58px; }
+}
+.panel.child-grid-panel.compact-room-panel {
+  width: min(920px, 96vw) !important;
+  height: max-content !important;
+  max-height: calc(100vh - 78px) !important;
+  overflow: hidden !important;
+}
+.compact-room-panel .room-location-grid,
+.compact-room-panel .room-item-grid {
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, 124px) !important;
+  gap: 8px;
+}
+.compact-room-panel .room-item-grid.few-items { grid-template-rows: 124px !important; }
+.compact-item-panel .room-item-grid.few-items:has(> :only-child),
+.compact-room-panel .room-item-grid.few-items:has(> :only-child) {
+  grid-template-columns: minmax(0, 290px) !important;
+  justify-content: center;
+}
+.compact-item-panel .room-item-grid.few-items:has(> :nth-child(2):last-child),
+.compact-room-panel .room-item-grid.few-items:has(> :nth-child(2):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 290px)) !important;
+  justify-content: center;
+}
+.compact-room-panel .room-location-card,
+.compact-room-panel .room-item-card { padding: 5px !important; }
+.compact-room-panel .room-location-preview { height: 61px; }
+.compact-room-panel .room-location-card strong { font-size: 14px; }
+.compact-room-panel .item-preview { width: 76px; height: 58px; }
+.panel.child-grid-panel.compact-shop-panel {
+  width: min(1120px, 96vw) !important;
+  height: min(560px, calc(100vh - 70px)) !important;
+  max-height: calc(100vh - 70px) !important;
+  overflow: hidden !important;
+}
+.panel.child-grid-panel.mansion-cutaway-panel,
+.panel.child-grid-panel.typing-map-panel {
+  height: min(680px, calc(100vh - 72px)) !important;
+  max-height: min(680px, calc(100vh - 72px)) !important;
+}
+.dig-map-cell.locked { opacity: .7; }
+.dig-map-cell small { font-size: 11px; }
+@media (max-height: 650px) {
+  .dig-map-cell b { font-size: 15px; }
+  .dig-map-cell small { font-size: 11px; }
+}
+@media (max-height: 650px) {
+  .compact-room-panel .room-location-grid,
+  .compact-room-panel .room-item-grid { grid-template-rows: repeat(2, 112px) !important; }
+  .compact-room-panel .room-item-grid.few-items { grid-template-rows: 112px !important; }
+  .compact-room-panel .room-location-preview { height: 54px; }
+  .compact-room-panel .item-preview { width: 68px; height: 52px; }
+}
