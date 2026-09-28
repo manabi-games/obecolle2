@@ -240,7 +240,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.10.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.11.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -506,22 +506,82 @@ class Game {
       return "まちには まだ あっていない ともだちが いるよ。たいぴんぐや がくしゅうを つづけよう！";
     return "まちを あるいて、ともだちと おはなししよう！";
   }
-  mansion(page = 0) {
+  friendRoomPreviewAppearance(friend, state) {
+    const gifted = [...(state?.gifts || [])]
+      .reverse()
+      .map((id) => D.ITEMS.find((item) => item.id === id))
+      .filter(Boolean),
+      outfit = gifted.find((item) => item.type === "clothing"),
+      glasses = gifted.find(
+        (item) => item.type === "accessories" && item.id.startsWith("glasses_"),
+      );
+    return {
+      ...friend.baseAppearance,
+      outfit: outfit?.id || "clothing_" + friend.defaultOutfit,
+      ...(glasses ? { glasses: glasses.id } : {}),
+    };
+  }
+  mansionRoomPreview(row) {
+    const friendWalls = [
+        "#dcebd5", "#d8e6ef", "#f0dce4", "#f1e5c9", "#dce8df",
+        "#e5def0", "#f2e0cf", "#d9e7e7", "#e8dfd2", "#eee4c9",
+      ],
+      friendFloors = [
+        "#d6bd95", "#c9b998", "#d7b9a4", "#d4c49c", "#c9bea7",
+        "#c9b6a4", "#d5c0a1", "#c5b79f", "#ccb89e", "#d8c29d",
+      ];
+    if (row.self) {
+      const furniture = Object.values(this.s.room.slots || {})
+        .map((id) => D.ITEMS.find((item) => item.id === id))
+        .filter(Boolean)
+        .slice(0, 3);
+      return {
+        wall: D.ITEMS.find((i) => i.id === this.s.room.wallpaper)?.color || "#d8e3c6",
+        floor: D.ITEMS.find((i) => i.id === this.s.room.floor)?.color || "#d9bd95",
+        furniture,
+        appearance: this.s.player.appearance,
+        label: "じぶんのへや",
+        sub: "もようがえ・きせかえ",
+      };
+    }
+    const friendIndex = Math.max(0, D.ACTIVE_FRIENDS.findIndex((f) => f.id === row.id)),
+      state = this.s.friends[row.id],
+      gifts = state?.gifts || [],
+      furnitureGifts = gifts.filter(
+        (id) => D.ITEMS.find((item) => item.id === id)?.type === "furniture",
+      ),
+      defaultIds = [
+        `furniture_${friendIndex % 10}`,
+        `furniture_${(friendIndex + 3) % 10}`,
+        `furniture_${(friendIndex + 6) % 10}`,
+      ],
+      furniture = (furnitureGifts.length ? furnitureGifts.slice(-3) : defaultIds)
+        .map((id) => D.ITEMS.find((item) => item.id === id))
+        .filter(Boolean);
+    return {
+      wall: friendWalls[friendIndex % friendWalls.length],
+      floor: friendFloors[friendIndex % friendFloors.length],
+      furniture,
+      appearance: this.friendRoomPreviewAppearance(row, state),
+      label: `${row.name}のへや`,
+      sub: this.hearts(state?.affinity || 0),
+    };
+  }
+  mansion() {
     this.setScene("mansion");
     const friends = D.ACTIVE_FRIENDS.filter((f) => !!this.s.friends[f.id]),
-      rows = [{ id: "self", name: "じぶんのへや", self: true }, ...friends],
-      pageSize = 6,
-      pages = Math.max(1, Math.ceil(rows.length / pageSize));
-    page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
-    this.mansionPage = page;
+      rows = [{ id: "self", name: this.s.player.name, self: true }, ...friends];
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>おべこれまんしょん</h2><p>いきたい おへやを えらぼう。</p></div><button data-a="island">まちへ</button></div><div class="grid mansion-room-grid">${rows.slice(page * pageSize, page * pageSize + pageSize).map((row) => {
-        if (row.self)
-          return `<button class="tile mansion-room-card self-room-card" data-a="resident:self">${appearancePortrait(this.s.player.appearance, null, false, this.s.player.name)}<strong>じぶんのへや</strong><small>もようがえ・きせかえ</small></button>`;
-        const state = this.s.friends[row.id];
-        return `<button class="tile mansion-room-card" data-a="resident:${row.id}">${friendPortrait(row)}<strong>${E(row.name)}のへや</strong><small>${this.hearts(state.affinity)}</small></button>`;
-      }).join("")}</div>${pages > 1 ? this.pagination(page, pages, "mansionpage") : ""}`,
-      "wide child-grid-panel mansion-panel",
+      `<div class="row spread panel-heading mansion-heading"><div><h2>おべこれまんしょん</h2><p>へやの なかを みて、いきたい へやを えらぼう。</p></div><button data-a="island">まちへ</button></div><div class="mansion-building-grid">${rows.map((row) => {
+        const p = this.mansionRoomPreview(row),
+          action = row.self ? "resident:self" : `resident:${row.id}`,
+          avatar = appearancePortrait(p.appearance, null, false, row.self ? this.s.player.name : row.name),
+          furniture = p.furniture
+            .map((item, i) => `<span class="mini-furniture mini-furniture-${i + 1}">${itemPreview(item)}</span>`)
+            .join("");
+        return `<button class="mansion-unit ${row.self ? "self-room" : "friend-room"}" data-a="${action}" style="--room-wall:${p.wall};--room-floor:${p.floor}"><span class="mini-room-stage"><span class="mini-room-wall"></span><span class="mini-room-floor"></span><span class="mini-room-window"></span>${furniture}<span class="mini-room-resident">${avatar}</span></span><span class="mini-room-label"><strong>${E(p.label)}</strong><small>${E(p.sub)}</small></span></button>`;
+      }).join("")}</div>`,
+      "wide child-grid-panel mansion-panel mansion-cutaway-panel",
     );
   }
   room(friend = null) {
@@ -749,29 +809,22 @@ class Game {
           "wide child-grid-panel levels-panel all-levels-panel",
         );
       }
-      typingLab(page = null) {
+      typingLab() {
     this.setScene("typing");
     const t = this.s.typing,
       maxLevel = 30,
       unlocked = Math.max(1, Math.min(maxLevel, t.level)),
-      pageSize = 6,
-      pages = Math.ceil(maxLevel / pageSize);
-    if (page === null || page === undefined)
-      page = Math.floor((unlocked - 1) / pageSize);
-    page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
-    this.typingPage = page;
-    const levels = Array.from(
-      { length: Math.min(pageSize, maxLevel - page * pageSize) },
-      (_, i) => page * pageSize + i + 1,
-    );
+      levels = Array.from({ length: maxLevel }, (_, i) => i + 1),
+      currentDino = D.DINOS[unlocked - 1];
     this.panel(
-      `<div class="row spread panel-heading"><div><h2>⛏️ たいぴんぐはっくつ</h2><p>いまの ちそう：Lv ${unlocked} / 30</p></div><div class="row"><span class="pill">🦖 ${this.s.dinosaurs.completedCount} / 30</span><button data-a="island">まちへ</button></div></div><div class="dig-current"><div><small>つぎの はっくつ</small><strong>ちそう Lv ${unlocked}</strong><span>5つの ことばで いわを くだこう</span></div><button class="primary" data-a="typelevel:basic:${unlocked}">はっくつする！</button></div><div class="grid dig-levels compact-dig-levels">${levels.map((lv) => {
+      `<div class="row spread panel-heading dig-heading"><div><h2>⛏️ たいぴんぐはっくつ</h2><p>ちそう Lv${unlocked} ／ きょうりゅう ${this.s.dinosaurs.completedCount} / 30</p></div><div class="row"><button data-a="book:dinosaurs">きょうりゅうずかん</button><button data-a="island">まちへ</button></div></div><div class="dig-now-strip"><div><small>いまの ちそう</small><strong>Lv ${unlocked}${currentDino ? `　？？？` : ""}</strong></div><span>5つの ことばで いわを くだこう</span><button class="primary" data-a="typelevel:basic:${unlocked}">はっくつする！</button></div><div class="dig-map-grid">${levels.map((lv) => {
         const dino = D.DINOS[lv - 1],
           found = !!this.s.dinosaurs.fossilBook[dino?.id]?.completed,
-          locked = lv > unlocked;
-        return `<button data-a="typelevel:basic:${lv}" ${locked ? "disabled" : ""}><strong>Lv ${lv}</strong><small>${found ? "🦖 " + E(dino.name) : locked ? "🔒 まだ" : "▶ いま ここ"}</small></button>`;
-      }).join("")}</div>${this.pagination(page, pages, "typingpage")}<div class="row collection-footer"><button data-a="book:dinosaurs">きょうりゅうずかん</button></div>`,
-      "wide child-grid-panel typing-lab-panel",
+          locked = lv > unlocked,
+          current = lv === unlocked;
+        return `<button class="dig-map-cell ${found ? "done" : ""} ${current ? "current" : ""} ${locked ? "locked" : ""}" data-a="typelevel:basic:${lv}" ${locked ? "disabled" : ""}><b>Lv ${lv}</b><small>${found ? `🦖 ${E(dino.name)}` : current ? "▶ いま ここ" : locked ? "🔒" : "？？？"}</small></button>`;
+      }).join("")}</div>`,
+      "wide child-grid-panel typing-lab-panel typing-map-panel",
     );
   }
   typingDojo() {

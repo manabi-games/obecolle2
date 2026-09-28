@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+assert.equal(fs.readFileSync(new URL("../VERSION", import.meta.url), "utf8").trim(), "1.11.0");
+const main = fs.readFileSync(new URL("../js/main.js", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../css/game.css", import.meta.url), "utf8");
+assert.ok(main.includes("Version 1.11.0"));
+assert.ok(main.includes("mansionRoomPreview(row)"));
+assert.ok(main.includes("mansion-building-grid"));
+assert.ok(main.includes("mini-room-stage"));
+assert.ok(main.includes("friendRoomPreviewAppearance"));
+assert.equal(main.includes("mansion-room-grid"), false);
+assert.equal(main.includes('this.pagination(page, pages, "mansionpage")'), false);
+assert.ok(main.includes("dig-map-grid"));
+assert.ok(main.includes("Array.from({ length: maxLevel }, (_, i) => i + 1)"));
+assert.equal(main.includes('this.pagination(page, pages, "typingpage")'), false);
+assert.ok(css.includes("/* v1.11 UI + Mansion Rebuild"));
+assert.ok(css.includes("grid-template-columns: repeat(4, minmax(0, 1fr))"));
+assert.ok(css.includes("grid-template-columns: repeat(6, minmax(0, 1fr))"));
+assert.ok(css.includes(".dig-map-cell.current"));
+assert.ok(css.includes(".mini-room-resident"));
+console.log("PASS: Obecolle2 v1.11 UI + Mansion Rebuild verifier");
