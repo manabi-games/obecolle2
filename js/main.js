@@ -2,7 +2,7 @@ import * as D from "./data/catalog.js";
 import * as R from "./systems/rules.js";
 import { SaveManager, validateSaveData } from "./core/save.js";
 import { AudioManager } from "./core/audio.js";
-import { World } from "./three/world.js?v=visual-9";
+import { World } from "./three/world.js?v=visual-10";
 import { games } from "./games.js";
 import { validateTyping } from "./systems/typing.js";
 import { doors, walkable, findPath, findPathToDoor } from "./systems/walking.js";
@@ -15,7 +15,7 @@ import {
 import { resetTransientState } from "./systems/session-state.js";
 import { EYE_NAMES, eyePreview } from "./ui-face.js";
 import { artLayout } from "./data/art-layout.js";
-import { atlasSvg, animalIcon, appearancePortrait, friendPortrait, itemPreview } from "./ui-child.js";
+import { atlasSvg, animalIcon, appearancePortrait, friendPortrait, itemPreview } from "./ui-child.js?v=visual-10";
 import { townArt } from "./ui-visuals.js";
 const E = (x) =>
   String(x ?? "").replace(
@@ -307,7 +307,7 @@ class Game {
         `<div class="creator-controls"><div class="appearance-row"><label>なまえ</label><input id="player-name" maxlength="8" value="${E(this.draft.name || "")}" placeholder="1〜8もじ"></div>${control("skin", "はだ")}${control("face", "かお")}</div>`,
         `<div class="creator-controls">${control("hair", "かみがた")}${control("hairColor", "かみのいろ")}</div>`,
         `<div class="creator-controls">${control("eyes", "め")}${control("brows", "まゆ")}${control("nose", "はな")}${control("mouth", "くち")}</div>`,
-        `<div class="creator-controls"><div class="creator-control"><strong>ふく</strong><div class="row"><button data-a="cycleoutfit:-1">◀</button>${itemPreview(outfits[outfitIndex])}<span>${E(outfits[outfitIndex]?.name || "ふく")}</span><button data-a="cycleoutfit:1">▶</button></div></div></div>`,
+        `<div class="creator-controls"><div class="creator-control"><strong>ふく</strong><div class="row creator-outfit-row"><button data-a="cycleoutfit:-1">◀</button>${itemPreview(outfits[outfitIndex])}<span>${E(outfits[outfitIndex]?.name || "ふく")}</span><button data-a="cycleoutfit:1">▶</button></div></div></div>`,
       ];
     this.panel(
       `<div class="row spread panel-heading"><div><h2>${this.editing ? "じぶんを あれんじ" : "きみは どんなこ？"}</h2><p>${this.creatorPage + 1} / 4</p></div><button data-a="creatorcancel">やめる</button></div>${pages[this.creatorPage]}<div class="creator-dots">${[0,1,2,3].map((i) => `<button class="${i === this.creatorPage ? "active" : ""}" data-a="creatorpage:${i}">${i + 1}</button>`).join("")}</div><div class="row creator-actions">${this.creatorPage > 0 ? `<button data-a="creatorpage:${this.creatorPage - 1}">◀ まえ</button>` : ""}${this.creatorPage < 3 ? `<button class="primary" data-a="creatorpage:${this.creatorPage + 1}">つぎ ▶</button>` : `<button class="primary" data-a="createfinish">${this.editing ? "これにする" : "しまへ しゅっぱつ！"}</button>`}</div>`,

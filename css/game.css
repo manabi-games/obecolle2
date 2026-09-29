@@ -3100,6 +3100,24 @@ body.island-interactive #toast {
 }
 .toy-preview { padding: 2px; overflow: hidden; }
 .toy-art { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 1px #4b584c30); }
+.creator-control > .row.creator-outfit-row {
+  grid-template-columns: 46px 104px minmax(0, 1fr) 46px;
+  gap: 10px;
+}
+.creator-outfit-row .item-preview {
+  width: 104px;
+  height: 92px;
+  margin: 0;
+  border-radius: 16px;
+}
+.creator-outfit-row > span:not(.item-preview) {
+  font-size: 19px;
+  font-weight: 800;
+  text-align: left;
+  line-height: 1.25;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
 .town-decor-preview .toy-art { width: 90%; height: 90%; }
 .compact-shop-panel .shop-tile {
   position: relative;
@@ -3127,8 +3145,8 @@ body.island-interactive #toast {
 }
 .compact-shop-panel .shop-preview .item-preview,
 .compact-shop-panel .town-decor-preview {
-  width: min(100%, 106px);
-  height: min(12vh, 72px);
+  width: min(100%, 130px);
+  height: min(15vh, 98px);
   margin: 0;
 }
 .compact-shop-panel .shop-tile .name {
@@ -3171,6 +3189,17 @@ body.island-interactive #toast {
 .friend-hat.hat-wizard { height: 25px; top: -5px; clip-path: polygon(50% 0, 81% 80%, 100% 100%, 0 100%, 19% 80%); }
 .friend-hat.hat-chef { height: 22px; top: -4px; background: #fff7e7; border-radius: 50% 50% 12% 12%; }
 .friend-hat.hat-headband { top: 13px; height: 8px; border-radius: 4px; }
+.friend-hat.hat-straw,.friend-hat.hat-explorer,.friend-hat.hat-sailor { top: 1px; left: 4px; width: 60px; height: 16px; border-radius: 48% 48% 10% 10%; }
+.friend-hat.hat-straw { background: #e8ce83; box-shadow: 0 7px 0 -2px #e8ce83; }
+.friend-hat.hat-explorer { background: #baa772; box-shadow: 0 7px 0 -2px #baa772; }
+.friend-hat.hat-sailor { background: #f5f0dd; box-shadow: 0 7px 0 -2px var(--hat-color); }
+.friend-hat.hat-pirate { top: 0; height: 23px; background: #35475a; clip-path: polygon(0 84%, 21% 18%, 50% 45%, 79% 18%, 100% 84%, 50% 66%); }
+.friend-hat.hat-graduate { top: 4px; height: 12px; border-radius: 2px; transform: rotate(-5deg); }
+.friend-hat.hat-helmet,.friend-hat.hat-space,.friend-hat.hat-ninja { top: 0; height: 25px; border-radius: 50% 50% 14% 14%; }
+.friend-hat.hat-ninja { background: #35475a; }
+.friend-hat.hat-dino::before { content: ""; position: absolute; top: -10px; left: 16px; width: 20px; height: 12px; background: #eacc76; clip-path: polygon(0 100%, 25% 0, 50% 100%, 75% 0, 100% 100%); }
+.friend-hat.hat-flower { top: 8px; height: 10px; background: #80af7f; }
+.friend-hat.hat-flower::before { content: "✿ ✿ ✿"; position: absolute; top: -12px; left: 5px; color: #ef9ca4; font-size: 19px; white-space: nowrap; }
 .friend-hat.hat-space { top: 0; height: 43px; background: #a7d8e3a8; border-radius: 50%; }
 .friend-hat.hat-dino::after { content:"";position:absolute;left:20px;top:-10px;width:13px;height:13px;background:#e7d57d;clip-path:polygon(50% 0,100% 100%,0 100%); }
 
@@ -3236,15 +3265,15 @@ body.island-interactive #toast {
 }
 .compact-item-panel .room-item-grid.few-items { grid-template-rows: 138px !important; }
 .compact-item-panel .room-item-grid .tile { padding: 6px !important; }
-.compact-item-panel .room-item-grid .item-preview { width: 92px; height: 70px; }
+.compact-item-panel .room-item-grid .item-preview { width: 118px; height: 86px; }
 .compact-item-panel .room-item-grid .name { font-size: 14px; }
 .compact-item-panel .room-item-grid small { font-size: 12px; }
 @media (max-height: 650px) {
   .compact-shop-panel .shop-preview .item-preview,
-  .compact-shop-panel .town-decor-preview { width: 100px; height: 68px; }
+  .compact-shop-panel .town-decor-preview { width: 120px; height: 86px; }
   .compact-item-panel .room-item-grid { grid-template-rows: repeat(2, 118px) !important; }
   .compact-item-panel .room-item-grid.few-items { grid-template-rows: 118px !important; }
-  .compact-item-panel .room-item-grid .item-preview { width: 76px; height: 58px; }
+  .compact-item-panel .room-item-grid .item-preview { width: 100px; height: 68px; }
 }
 .panel.child-grid-panel.compact-room-panel {
   width: min(920px, 96vw) !important;

@@ -5,7 +5,7 @@ import {
   animateCharacter,
   creatureModel,
   furniture,
-} from "./factories.js?v=visual-9";
+} from "./factories.js?v=visual-10";
 import {
   FACILITIES,
   FRIENDS,

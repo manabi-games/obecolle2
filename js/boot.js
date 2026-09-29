@@ -1,5 +1,5 @@
 try {
-  await import("./main.js?v=visual-9");
+  await import("./main.js?v=visual-10");
 } catch (error) {
   console.error(error);
   const panel = document.createElement("section");

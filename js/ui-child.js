@@ -1,5 +1,5 @@
 import { ITEMS } from "./data/catalog.js";
-import { itemArt } from "./ui-visuals.js";
+import { itemArt } from "./ui-visuals.js?v=visual-10";
 
 const E = (x) =>
   String(x ?? "").replace(

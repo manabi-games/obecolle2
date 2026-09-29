@@ -68,7 +68,14 @@ export function character(appearance = {}, scale = 1) {
   const torso = add(body, "charball", shirt, [0.36, 0.43, 0.24], [0, 0.87, 0]);
   const costume = outfit?.visual || "hoodie";
   const front = (kind, color, size, pos) => add(body, kind, color, size, pos);
-  if (["astronaut", "robot"].includes(costume)) {
+  if (costume === "hoodie") {
+    front("charball", "#276970", [0.37, 0.2, 0.22], [0, 1.2, -0.03]);
+    front("charball", "#d7e9cf", [0.29, 0.09, 0.13], [0, 1.19, 0.15]);
+    for (const x of [-0.12, 0.12])
+      front("box", "#fff5d9", [0.025, 0.25, 0.035], [x, 1.01, 0.27]);
+    front("box", "#276970", [0.43, 0.18, 0.06], [0, 0.74, 0.25]);
+    front("box", "#f3d584", [0.08, 0.07, 0.035], [0, 0.77, 0.29]);
+  } else if (["astronaut", "robot"].includes(costume)) {
     front("box", "#dceaf1", [0.35, 0.28, 0.07], [0, 0.91, 0.24]);
     for (const x of [-0.1, 0.1]) front("charball", x < 0 ? "#ed7965" : "#efcd5c", [0.035, 0.035, 0.03], [x, 0.92, 0.29]);
   } else if (["ninja", "pirate", "sailor", "festival"].includes(costume)) {
@@ -360,6 +367,8 @@ export function character(appearance = {}, scale = 1) {
       [0.13, 0.16, 0.14],
       [Math.sign(x) * 0.02, -0.11, 0],
     );
+    if (costume === "hoodie")
+      add(arm, "charball", "#d7e9cf", [0.14, 0.07, 0.15], [Math.sign(x) * 0.035, -0.23, 0]);
     add(
       arm,
       "charcylinder",
@@ -393,6 +402,15 @@ export function character(appearance = {}, scale = 1) {
       add(head, "charball", "#35475a", [0.6, 0.26, 0.48], [0, 0.46, 0]);
       add(head, "box", "#35475a", [0.92, 0.1, 0.43], [0, 0.37, 0.05]);
       add(head, "charball", "#f5e7c9", [0.08, 0.08, 0.04], [0, 0.5, 0.49]);
+    } else if (["straw", "explorer", "sailor"].includes(kind)) {
+      const crownColor = kind === "straw" ? "#e8ce83" : kind === "sailor" ? "#f5f0dd" : "#baa772";
+      add(head, "charcylinder", crownColor, [0.45, kind === "explorer" ? 0.3 : 0.22, 0.39], [0, 0.53, 0]);
+      add(head, "charcylinder", crownColor, [kind === "straw" ? 0.78 : 0.69, 0.045, 0.61], [0, 0.38, 0]);
+      add(head, "box", color, [0.78, 0.08, 0.07], [0, 0.46, 0.34]);
+    } else if (["helmet", "space", "ninja"].includes(kind)) {
+      add(head, "charball", kind === "space" ? "#e7f2ef" : kind === "ninja" ? "#34475b" : color, [0.63, 0.4, 0.53], [0, 0.33, -0.04]);
+      add(head, "box", kind === "space" ? "#7cbed0" : kind === "ninja" ? "#f2dfb7" : "#f0ce74", [0.72, kind === "ninja" ? 0.08 : 0.19, 0.055], [0, 0.1, 0.49]);
+      if (kind === "helmet") add(head, "box", "#707d83", [0.91, 0.08, 0.43], [0, 0.06, 0.13]);
     } else if (["wizard", "chef", "graduate"].includes(kind)) {
       add(head, kind === "graduate" ? "box" : "charcylinder", color, [0.54, 0.12, 0.43], [0, 0.44, 0]);
       add(head, kind === "wizard" ? "cone" : "charcylinder", kind === "chef" ? "#fff9e8" : color, [0.44, kind === "wizard" ? 0.65 : 0.28, 0.35], [0, 0.67, 0]);

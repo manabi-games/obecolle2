@@ -11,9 +11,9 @@ function clothing(item) {
   const kind = item.visual || 'hoodie';
   const coat = ['astronaut', 'chef', 'scientist', 'royal', 'pirate', 'explorer', 'raincoat', 'scholar', 'sailor'].includes(kind);
   const body = path(coat ? 'M30 22 19 29 11 63 25 67 29 52 29 76 67 76 67 52 71 67 85 63 77 29 65 22 57 29 39 29Z' : 'M29 22 17 28 9 49 21 57 29 43 29 75 67 75 67 43 75 57 87 49 79 28 67 22 58 29 38 29Z', c);
-  const base = body + path('M38 29 48 38 58 29', '#fff5df');
+  const base = body + path('M67 22 79 28 87 49 75 57 67 43 67 75 60 75 60 31Z', '#25495330') + path('M38 29 48 38 58 29', '#fff5df') + line('M29 69H67', '#fff5df', 2);
   const marks = {
-    hoodie: path('M36 23Q48 12 60 23L57 32 48 39 39 32Z', '#e9f2d7') + line('M45 38V55M52 38V53', '#fff5df'),
+    hoodie: path('M32 23Q48 3 64 23L59 34 48 41 37 34Z', '#276970') + path('M38 24Q48 12 58 24L55 31 48 36 41 31Z', '#d7e9cf') + line('M42 36V52M54 36V52', '#fff7d9', 3) + path('M35 55H61L58 68H38Z', '#276970') + line('M35 56 41 61H55L61 56', '#f7dfab', 2) + rect(12, 50, 12, 8, '#d7e9cf', 3) + rect(72, 50, 12, 8, '#d7e9cf', 3) + circle(48, 59, 3, '#f6d475'),
     baseball: rect(30, 35, 36, 21, '#f5f2e5', 2) + line('M48 35V72M37 57H59', '#b55255', 3) + path('M28 19Q48 4 68 19L72 25H24Z','#d76662'),
     astronaut: circle(48, 20, 16, '#e3f3f4') + circle(48, 20, 11, '#79bbd0') + circle(48, 42, 13, '#dceaf1') + rect(40, 58, 16, 10, '#f6d35d') + circle(72, 38, 3, '#f6d35d'),
     ninja: path('M27 25Q30 4 48 4Q66 4 69 25Z','#2c415a') + path('M29 30H67V39H29Z', '#293f55') + line('M48 39V74M30 59H66', '#f4e6c2', 3),
