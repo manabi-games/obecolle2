@@ -1,4 +1,6 @@
 // Tiny, shared toy illustrations. Item IDs stay in catalog/save data; only their art changes.
+import { itemVisual } from './systems/visual-state.js?v=visual-12-r2';
+import { FURNITURE_VISUALS } from './data/catalog.js?v=visual-12-r2';
 const stroke = '#40545b';
 const svg = (body, label) => `<svg class="toy-art" viewBox="0 0 96 84" role="img" aria-label="${label}" xmlns="http://www.w3.org/2000/svg"><g stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`;
 const rect = (x, y, w, h, fill, rx = 3) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}"/>`;
@@ -8,7 +10,7 @@ const line = (d, color = stroke, width = 2) => `<path d="${d}" fill="none" strok
 
 function clothing(item) {
   const c = item.color || '#67adbc';
-  const kind = item.visual || 'hoodie';
+  const kind = itemVisual(item);
   const coat = ['astronaut', 'chef', 'scientist', 'royal', 'pirate', 'explorer', 'raincoat', 'scholar', 'sailor'].includes(kind);
   const body = path(coat ? 'M30 22 19 29 11 63 25 67 29 52 29 76 67 76 67 52 71 67 85 63 77 29 65 22 57 29 39 29Z' : 'M29 22 17 28 9 49 21 57 29 43 29 75 67 75 67 43 75 57 87 49 79 28 67 22 58 29 38 29Z', c);
   const base = body + path('M67 22 79 28 87 49 75 57 67 43 67 75 60 75 60 31Z', '#25495330') + path('M38 29 48 38 58 29', '#fff5df') + line('M29 69H67', '#fff5df', 2);
@@ -34,11 +36,11 @@ function clothing(item) {
     soccer: rect(31, 35, 34, 24, '#f5f7ec') + path('M48 39 55 45 52 53 44 53 41 45Z', '#384c54'),
     forest: path('M29 28 48 10 67 28 58 47 67 72H29L38 47Z', '#b8ce82') + circle(48, 51, 5, '#f1dd9a'),
   };
-  return svg(base + (marks[kind] || marks.hoodie), item.name);
+  return svg(base + marks[kind], item.name);
 }
 
 function hat(item) {
-  const c = item.color || '#78b5bf', kind = item.visual || 'cap';
+  const c = item.color || '#78b5bf', kind = itemVisual(item);
   const band = rect(18, 59, 60, 8, '#fff0ce', 4);
   const parts = {
     cap: path('M24 57Q25 27 49 28Q70 27 72 57Z', c) + path('M62 57Q88 55 87 64L67 64Z', '#edc662'),
@@ -58,10 +60,11 @@ function hat(item) {
     wizard: path('M26 60 50 9 70 60Z', c) + rect(13, 57, 70, 8, '#42536c') + circle(48, 38, 5, '#f3d464'),
     flower: path('M19 56Q48 39 77 56', 'none') + [28, 40, 54, 68].map((x,i) => circle(x, i%2 ? 47 : 51, 7, i%2 ? '#ef9ca4' : '#f4d86d')).join(''),
   };
-  return svg((parts[kind] || parts.cap) + (!['straw','explorer','crown','graduate','helmet','space','ninja','pirate','headband','chef','sailor','wizard','flower'].includes(kind) ? band : ''), item.name);
+  return svg(parts[kind] + (!['straw','explorer','crown','graduate','helmet','space','ninja','pirate','headband','chef','sailor','wizard','flower'].includes(kind) ? band : ''), item.name);
 }
 
 function furniture(item) {
+  const shape = FURNITURE_VISUALS.indexOf(itemVisual(item));
   const c = item.color || '#83bdb0', a = ['#eec6a0','#87c6d6','#a2bd7d','#aeb9cb','#a19bcd','#edb1b3'][item.theme || 0];
   const legs = line('M23 66V76M73 66V76', '#6d6659', 5);
   const art = [
@@ -75,7 +78,7 @@ function furniture(item) {
     path('M47 73 47 49M47 57 30 43M47 62 66 42','#6c9e72')+circle(35,37,12,'#78b67c')+circle(60,34,14,'#89c782')+path('M33 64H63L58 76H38Z',c),
     rect(20,26,56,36,c,5)+rect(25,31,46,25,'#83bfce',2)+rect(42,62,12,8,'#6d6b70')+rect(34,70,28,5,'#6d6b70'),
     rect(19,30,58,39,c,3)+line('M20 50H76M48 50V69','#f2d5a3',3)+circle(38,41,2,'#e8d67a')+circle(59,41,2,'#e8d67a'),
-  ][Number(item.shape || 0) % 10];
+  ][shape];
   const accent = [
     circle(78,14,5,'#efa8a4'),
     line('M68 17Q73 12 78 17T88 17','#73b8d3',3),
@@ -88,11 +91,12 @@ function furniture(item) {
 }
 
 export function itemArt(item) {
+  itemVisual(item);
   if (item.type === 'clothing') return clothing(item);
   if (item.type === 'furniture') return furniture(item);
   if (item.id?.startsWith('hat_') || item.id?.startsWith('dojo_reward_')) return hat(item);
   if (item.id?.startsWith('glasses_')) {
-    const c = item.color || '#4c7181', kind = item.visual || 'round';
+    const c = item.color || '#4c7181', kind = itemVisual(item);
     const lens = kind === 'square' || kind === 'goggles'
       ? rect(18,31,27,26,'#d4eced88',kind === 'goggles' ? 10 : 3)+rect(51,31,27,26,'#d4eced88',kind === 'goggles' ? 10 : 3)
       : kind === 'sunglasses'

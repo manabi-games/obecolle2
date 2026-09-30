@@ -1,6 +1,7 @@
 import { newSave, clone } from "../systems/rules.js";
 import {
   SUBJECTS,
+  CORE_SUBJECT_IDS,
   FRIENDS,
   FISH,
   DINOS,
@@ -11,7 +12,7 @@ import {
   ANIMALS,
   ACHIEVEMENTS,
   RODS,
-} from "../data/catalog.js";
+} from "../data/catalog.js?v=visual-12-r2";
 const object = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
 const integer = (n, max = 1e9) => Number.isSafeInteger(n) && n >= 0 && n <= max;
 export function validateSaveData(s) {
@@ -86,7 +87,6 @@ export function validateSaveData(s) {
     if (!integer(s.progression[k])) errors.push(k);
   if (!integer(s.progression.manabiRank, 10) || s.progression.manabiRank < 1)
     errors.push("rank");
-  let stars = 0;
   for (const sub of SUBJECTS) {
     const b = s.learning[sub.id];
     if (!integer(b.unlocked, 20) || b.unlocked < 1)
@@ -99,10 +99,12 @@ export function validateSaveData(s) {
         !integer(x.plays)
       )
         errors.push("learning record");
-      else stars += x.stars;
     }
   }
-  if (stars !== s.progression.stars) errors.push("star total mismatch");
+  const coreStars = Object.entries(s.learning)
+    .filter(([id]) => CORE_SUBJECT_IDS.includes(id))
+    .reduce((sum, [, book]) => sum + Object.values(book.levels || {}).reduce((n, row) => n + (row.stars || 0), 0), 0);
+  if (coreStars !== s.progression.stars) errors.push("star total mismatch");
   for (const [key, val] of Object.entries(s.typing))
     if (
       typeof val === "number" &&
@@ -286,10 +288,16 @@ export function validateSaveData(s) {
   return errors;
 }
 export function migrateSave(data) {
-  const errors = validateSaveData(data);
+  const migrated = clone(data);
+  // Old saves counted the five retired subjects in progression.stars.
+  if (migrated?.progression && migrated?.learning && CORE_SUBJECT_IDS.every((id) => migrated.learning[id]?.levels))
+    migrated.progression.stars = CORE_SUBJECT_IDS.reduce(
+      (sum, id) => sum + Object.values(migrated.learning[id].levels).reduce((n, row) => n + (row?.stars || 0), 0),
+      0,
+    );
+  const errors = validateSaveData(migrated);
   if (errors.length)
     throw Error("せーぶを よめなかったよ：" + errors.slice(0, 3).join(" / "));
-  const migrated = clone(data);
   let completedCount = 0;
   for (const d of DINOS) {
     const book = migrated.dinosaurs.fossilBook[d.id];

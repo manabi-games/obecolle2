@@ -1,4 +1,4 @@
-import { FISH, DINOS, ANIMALS } from "../data/catalog.js";
+import { FISH, DINOS, ANIMALS } from "../data/catalog.js?v=visual-12-r2";
 const BASE = {
   あ: ["a"],
   い: ["i", "yi"],

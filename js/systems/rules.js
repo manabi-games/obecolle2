@@ -15,7 +15,7 @@ import {
   ACHIEVEMENTS,
   RODS,
   itemRequirement,
-} from "../data/catalog.js";
+} from "../data/catalog.js?v=visual-12-r2";
 export const clone = (x) => structuredClone(x);
 export const localDate = () => {
   const d = new Date();
@@ -202,7 +202,7 @@ export function evaluate(s) {
     const definition = MISSIONS.find((m) => m.id === mission.id);
     if (definition) mission.name = definition.name;
   }
-  p.stars = SUBJECTS.reduce(
+  p.stars = SUBJECTS.filter((sub) => CORE_SUBJECT_IDS.includes(sub.id)).reduce(
     (sum, sub) =>
       sum +
       Object.values(s.learning[sub.id].levels).reduce((a, l) => a + l.stars, 0),
@@ -214,15 +214,17 @@ export function evaluate(s) {
     remember(s, "rank", "まなびらんく " + rank + "！");
     notices.push("まなびらんく " + rank + "！");
   }
-  p.unlockedFacilities = FACILITIES.filter((f) => rank >= f.rank).map(
+  // A rank already earned by an older save remains earned, while new stars use core subjects only.
+  const earnedRank = p.manabiRank;
+  p.unlockedFacilities = FACILITIES.filter((f) => earnedRank >= f.rank).map(
     (f) => f.id,
   );
   s.fishing.unlockedAreas = FISH_AREAS.filter(
-    (a) => rank >= a.rank && count(s.fishing.fishBook) >= a.species,
+    (a) => earnedRank >= a.rank && count(s.fishing.fishBook) >= a.species,
   ).map((a) => a.id);
   s.dinosaurs.unlockedAreas = DIG_AREAS.filter(
     (a) =>
-      rank >= a.rank &&
+      earnedRank >= a.rank &&
       s.dinosaurs.completedCount >= a.completed &&
       (s.dinosaurs.completedCount > 0 || a.id === "dig_0"),
   ).map((a) => a.id);
@@ -233,7 +235,7 @@ export function evaluate(s) {
   ];
   s.arena.unlockedTournaments = TOURNAMENTS.filter(
     (a) =>
-      rank >= a.rank &&
+      earnedRank >= a.rank &&
       (a.id !== "cup_2" || s.dinosaurs.completedCount >= 10) &&
       ownedArenaCreatures.some((c) => arenaEligible(a.id, c)),
   ).map((a) => a.id);
@@ -283,7 +285,7 @@ export function evaluate(s) {
       remember(s, "mansion", "まんしょんがおおきくなった！");
       notices.push("まんしょんがおおきくなった！");
     }
-  for (const a of ACHIEVEMENTS)
+  for (const a of ACHIEVEMENTS.filter((row) => !row.legacy))
     if (!s.achievements[a.id] && (p.metrics[a.metric] || 0) >= a.target) {
       s.achievements[a.id] = true;
       p.coins += a.coins;

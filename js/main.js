@@ -1,9 +1,9 @@
-import * as D from "./data/catalog.js";
-import * as R from "./systems/rules.js";
-import { SaveManager, validateSaveData } from "./core/save.js";
+import * as D from "./data/catalog.js?v=visual-12-r2";
+import * as R from "./systems/rules.js?v=visual-12-r2";
+import { SaveManager, migrateSave } from "./core/save.js?v=visual-12-r2";
 import { AudioManager } from "./core/audio.js";
-import { World } from "./three/world.js?v=visual-10";
-import { games } from "./games.js";
+import { World } from "./three/world.js?v=visual-12-r2";
+import { games } from "./games.js?v=visual-12-r2";
 import { validateTyping } from "./systems/typing.js";
 import { doors, walkable, findPath, findPathToDoor } from "./systems/walking.js";
 import { FISH_ART, NEW_FISH_IDS } from "./data/art.js";
@@ -15,8 +15,9 @@ import {
 import { resetTransientState } from "./systems/session-state.js";
 import { EYE_NAMES, eyePreview } from "./ui-face.js";
 import { artLayout } from "./data/art-layout.js";
-import { atlasSvg, animalIcon, appearancePortrait, friendPortrait, itemPreview } from "./ui-child.js?v=visual-10";
-import { townArt } from "./ui-visuals.js";
+import { atlasSvg, animalIcon, appearancePortrait, friendPortrait, itemPreview } from "./ui-child.js?v=visual-12-r2";
+import { townArt } from "./ui-visuals.js?v=visual-12-r2";
+import { buildRoomVisualState, currentFriendAppearance, itemById } from "./systems/visual-state.js?v=visual-12-r2";
 const E = (x) =>
   String(x ?? "").replace(
     /[&<>"']/g,
@@ -158,7 +159,7 @@ class Game {
     }
     const p = this.s.progression,
       activeFriends = D.ACTIVE_FRIENDS.filter((f) => !!this.s.friends[f.id]).length;
-    this.hud.innerHTML = `<div class="profile">${E(this.s.player.name)}<small>まなびらんく ${p.manabiRank} ／ ともだち ${activeFriends} / 10</small></div><div class="wallet"><span>◉ ${p.coins}</span><span>★ ${p.stars}</span></div><div class="hud-actions"><button data-a="room">🏠 おへや</button><button data-a="collection">📖 ずかん</button><button data-a="pause">☰</button></div>`;
+    this.hud.innerHTML = `<div class="profile">${E(this.s.player.name)}<small>まなびらんく ${p.manabiRank} ／ ともだち ${activeFriends} / 10</small></div><div class="wallet"><span>◉ ${p.coins}</span><span>★ ${p.stars}</span></div><div class="hud-actions"><button data-a="room">🏠 おへや</button><button data-a="collection">📖 ずかん</button><button data-a="missions">🎯 みっしょん</button><button data-a="pause">☰</button></div>`;
   }
   featuredShopItem(item) {
     if (item?.rewardOnly) return true;
@@ -240,7 +241,7 @@ class Game {
     this.setScene("title");
     document.querySelector("#labels").classList.add("hidden");
     this.screen.innerHTML =
-      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.11.0 ／ PC・きーぼーどであそぼう</div>';
+      '<div class="title-box"><div class="subtitle">まなぶ。くらす。あつめる。</div><h1>おべんきょ<br>これくしょん<b>2</b></h1><p>きみのまいにちが、しまをそだてる。</p><button class="primary" data-a="slots">はじめる</button><button data-a="help">あそびかた</button></div><div class="version">おべこれ2　Version 1.12.0 ／ PC・きーぼーどであそぼう</div>';
   }
   async slots() {
     this.setScene("title");
@@ -506,69 +507,13 @@ class Game {
       return "まちには まだ あっていない ともだちが いるよ。たいぴんぐや がくしゅうを つづけよう！";
     return "まちを あるいて、ともだちと おはなししよう！";
   }
-  friendRoomPreviewAppearance(friend, state) {
-    const gifted = [...(state?.gifts || [])]
-      .reverse()
-      .map((id) => D.ITEMS.find((item) => item.id === id))
-      .filter(Boolean),
-      outfit = gifted.find((item) => item.type === "clothing"),
-      hat = gifted.find(
-        (item) => item.type === "accessories" && !item.id.startsWith("glasses_"),
-      ),
-      glasses = gifted.find(
-        (item) => item.type === "accessories" && item.id.startsWith("glasses_"),
-      );
-    return {
-      ...friend.baseAppearance,
-      outfit: outfit?.id || "clothing_" + friend.defaultOutfit,
-      ...(hat ? { hat: hat.id } : {}),
-      ...(glasses ? { glasses: glasses.id } : {}),
-    };
-  }
   mansionRoomPreview(row) {
-    const friendWalls = [
-        "#dcebd5", "#d8e6ef", "#f0dce4", "#f1e5c9", "#dce8df",
-        "#e5def0", "#f2e0cf", "#d9e7e7", "#e8dfd2", "#eee4c9",
-      ],
-      friendFloors = [
-        "#d6bd95", "#c9b998", "#d7b9a4", "#d4c49c", "#c9bea7",
-        "#c9b6a4", "#d5c0a1", "#c5b79f", "#ccb89e", "#d8c29d",
-      ];
-    if (row.self) {
-      const furniture = Object.values(this.s.room.slots || {})
-        .map((id) => D.ITEMS.find((item) => item.id === id))
-        .filter(Boolean)
-        .slice(-4);
-      return {
-        wall: D.ITEMS.find((i) => i.id === this.s.room.wallpaper)?.color || "#d8e3c6",
-        floor: D.ITEMS.find((i) => i.id === this.s.room.floor)?.color || "#d9bd95",
-        furniture,
-        appearance: this.s.player.appearance,
-        label: "じぶんのへや",
-        sub: "もようがえ・きせかえ",
-      };
-    }
-    const friendIndex = Math.max(0, D.ACTIVE_FRIENDS.findIndex((f) => f.id === row.id)),
-      state = this.s.friends[row.id],
-      gifts = state?.gifts || [],
-      furnitureGifts = gifts.filter(
-        (id) => D.ITEMS.find((item) => item.id === id)?.type === "furniture",
-      ),
-      defaultIds = [
-        `furniture_${friendIndex % 10}`,
-        `furniture_${(friendIndex + 3) % 10}`,
-        `furniture_${(friendIndex + 6) % 10}`,
-      ],
-      furniture = (furnitureGifts.length ? furnitureGifts.slice(-3) : defaultIds)
-        .map((id) => D.ITEMS.find((item) => item.id === id))
-        .filter(Boolean);
+    const room = buildRoomVisualState(this.s, row.self ? null : row.id);
     return {
-      wall: friendWalls[friendIndex % friendWalls.length],
-      floor: friendFloors[friendIndex % friendFloors.length],
-      furniture,
-      appearance: this.friendRoomPreviewAppearance(row, state),
-      label: `${row.name}のへや`,
-      sub: this.hearts(state?.affinity || 0),
+      ...room,
+      furniture: room.furnitureIds.filter(Boolean).map(itemById).filter(Boolean),
+      label: row.self ? "じぶんのへや" : `${row.name}のへや`,
+      sub: row.self ? "もようがえ・きせかえ" : this.hearts(this.s.friends[row.id]?.affinity || 0),
     };
   }
   mansion() {
@@ -723,20 +668,14 @@ class Game {
   together(id) {
     this.closeDialog();
     this.panel(
-      `<h2>${D.FRIENDS.find((f) => f.id === id).name}と あそぼう</h2><div class="row"><button data-a="friendquiz:${id}">いっしょに くいず</button>${this.s.progression.manabiRank >= 4 ? `<button data-a="togetherfishing:${id}">いっしょに つり</button>` : ""}${this.s.progression.manabiRank >= 6 ? `<button data-a="togetherdig:${id}">いっしょに はっくつ</button>` : ""}<button data-a="resident:${id}">もどる</button></div>`,
+      `<h2>${D.FRIENDS.find((f) => f.id === id).name}と あそぼう</h2><div class="row"><button data-a="friendquiz:${id}">いっしょに くいず</button><button data-a="resident:${id}">もどる</button></div>`,
       "small",
     );
   }
   addCompanion() {
     if (!this.companion) return;
     const f = D.FRIENDS.find((f) => f.id === this.companion);
-    if (f)
-      this.world.human(
-        { ...f.baseAppearance, outfit: "clothing_" + f.defaultOutfit },
-        -3,
-        2,
-        "wave",
-      );
+    if (f) this.world.human(currentFriendAppearance(f, this.s.friends[f.id]), -3, 2, "wave");
   }
   companionReward(activity) {
     if (!this.companion) return;
@@ -848,7 +787,7 @@ class Game {
             ["60", "1ぷん チャレンジ", "60びょうで なんもじ うてるかな？", f.dojo_60_best_chars ? `${f.dojo_60_best_chars}もじ` : "--", recent("dojo_60_recent", true), "50もじいじょう", "しんきろく ぼうし", owned("dojo_reward_60", "accessories")],
           ];
         this.panel(
-          `<div class="row spread panel-heading"><div><h2>🥋 たいぴんぐ道場</h2><p>きろくを のばして、こいんと れああいてむを げっと！</p></div><button data-a="island">まちへ</button></div><div class="dojo-mode-grid compact-dojo-grid">${cards.map(([id, title, desc, best, history, condition, reward, got]) => `<button class="dojo-mode-card compact-dojo-card" data-a="dojostart:${id}"><span class="dojo-mode-icon">${id === "60" ? "⏱️" : "⚡"}</span><strong>${title}</strong><small>${desc}</small><b>BEST ${best}</b><span class="dojo-reward-line">🎁 ${condition} → ${got ? "✓ " : ""}${reward}</span><em>さいきん：${history}</em></button>`).join("")}</div><div class="dojo-note">ぷれいするだけでも こいんが もらえるよ。タイマーは さいしょのキーで スタート！</div>`,
+          `<div class="row spread panel-heading"><div><h2>🥋 たいぴんぐどうじょう</h2><p>きろくを のばして、こいんと れああいてむを げっと！</p></div><button data-a="island">まちへ</button></div><div class="dojo-mode-grid compact-dojo-grid">${cards.map(([id, title, desc, best, history, condition, reward, got]) => `<button class="dojo-mode-card compact-dojo-card" data-a="dojostart:${id}"><span class="dojo-mode-icon">${id === "60" ? "⏱️" : "⚡"}</span><strong>${title}</strong><small>${desc}</small><b>BEST ${best}</b><span class="dojo-reward-line">🎁 ${condition} → ${got ? "✓ " : ""}${reward}</span><em>さいきん：${history}</em></button>`).join("")}</div><div class="dojo-note">ぷれいするだけでも こいんが もらえるよ。タイマーは さいしょのキーで スタート！</div>`,
           "wide child-grid-panel dojo-menu-panel",
         );
       }
@@ -1175,7 +1114,7 @@ class Game {
     };
     const visual = (x, known) =>
       category === "friends"
-        ? friendPortrait(x, !known)
+        ? friendPortrait(x, !known, this.s.friends[x.id])
         : category === "dinosaurs"
           ? this.icon(x, !known)
           : itemPreview(x, !known);
@@ -1264,7 +1203,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
     }
   }
   achievements(page = this.achievementPage || 0) {
-    const rows = D.ACHIEVEMENTS,
+    const rows = D.ACHIEVEMENTS.filter((row) => !row.legacy || this.s.achievements[row.id]),
       pages = Math.max(1, Math.ceil(rows.length / 8));
     page = Math.max(0, Math.min(pages - 1, Number(page) || 0));
     this.achievementPage = page;
@@ -1288,7 +1227,7 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         const friend = memory.friendIds?.length
           ? D.FRIENDS.find((f) => f.id === memory.friendIds[0])
           : null;
-        return `<div class="tile memory-card"><div class="photo">${friend ? friendPortrait(friend) : '<span class="memory-symbol">✦</span>'}<strong>${E(memory.title)}</strong></div><small>${memory.date.slice(0, 10)}</small><button data-a="photo:${memory.id}">${this.s.room.photos.includes(memory.id) ? "✓ おへやに かざっている" : "おへやに かざる"}</button></div>`;
+        return `<div class="tile memory-card"><div class="photo">${friend ? friendPortrait(friend, false, this.s.friends[friend.id]) : '<span class="memory-symbol">✦</span>'}<strong>${E(memory.title)}</strong></div><small>${memory.date.slice(0, 10)}</small><button data-a="photo:${memory.id}">${this.s.room.photos.includes(memory.id) ? "✓ おへやに かざっている" : "おへやに かざる"}</button></div>`;
       }).join("") || "<p>これから おもいでが ふえていくよ。</p>"}</div>${this.pagination(page, pages, "memorypage")}`,
       "wide child-grid-panel memories-panel",
     );
@@ -1381,16 +1320,16 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json,application/json";
+    input.hidden = true;
+    document.body.append(input);
     input.onchange = async () => {
       try {
         const file = input.files[0];
         if (!file) return;
         if (file.size > 8e6) throw Error("ふぁいるがおおきすぎます");
         const text = await file.text(),
-          data = JSON.parse(text),
-          errors = validateSaveData(data);
-        if (errors.length) throw Error(errors.slice(0, 3).join(" / "));
-        this.pendingImport = { text, slot };
+          data = migrateSave(JSON.parse(text));
+        this.pendingImport = { text: JSON.stringify(data), slot };
         this.say(
           "ばっくあっぷからふくげん",
           `せーぶ${slot}へ「${data.player.name}」をふくげんします。\nいまのでーたはpreviousほぞんへほぞんします。`,
@@ -1401,8 +1340,11 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
         );
       } catch (e) {
         this.error(e);
+      } finally {
+        input.remove();
       }
     };
+    input.oncancel = () => input.remove();
     input.click();
   }
   async importConfirm() {

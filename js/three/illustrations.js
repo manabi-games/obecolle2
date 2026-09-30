@@ -5,9 +5,9 @@ const textures = new Map(),
   materials = new Map();
 export function illustratedCreature(c, scale = 1) {
   const dino = c.id.startsWith("dino_"),
-    legacy = FISH_ART[c.id];
-  const source =
-    legacy || `assets/illustrations/${dino ? "dinosaurs" : "fish"}-atlas.png`;
+    legacy = FISH_ART[c.id],
+    layout = legacy ? null : artLayout(c.id);
+  const source = legacy || layout.source;
   let mat = materials.get(c.id);
   if (!mat) {
     let texture = textures.get(source);
@@ -17,9 +17,8 @@ export function illustratedCreature(c, scale = 1) {
       textures.set(source, texture);
     }
     const map = texture.clone();
-    // Shared source image, individual atlas UVs. No raster files are altered.
     if (!legacy) {
-      const a = artLayout(c.id);
+      const a = layout;
       map.repeat.set(a.w / a.width, a.h / a.height);
       map.offset.set(a.x / a.width, 1 - (a.y + a.h) / a.height);
     }
@@ -33,12 +32,12 @@ export function illustratedCreature(c, scale = 1) {
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <map_fragment>",
         `#include <map_fragment>
-        ${legacy ? "float key = diffuseColor.g - max(diffuseColor.r, diffuseColor.b); diffuseColor.a *= 1.0-smoothstep(0.12,0.3,key);" : "float white = min(diffuseColor.r,min(diffuseColor.g,diffuseColor.b)); diffuseColor.a *= 1.0-smoothstep(0.88,0.99,white);"}
+        ${legacy ? "float key = diffuseColor.g - max(diffuseColor.r, diffuseColor.b); diffuseColor.a *= 1.0-smoothstep(0.12,0.3,key);" : dino ? "" : "float white = min(diffuseColor.r,min(diffuseColor.g,diffuseColor.b)); diffuseColor.a *= 1.0-smoothstep(0.88,0.99,white);"}
       `,
       );
     };
     mat.customProgramCacheKey = () =>
-      legacy ? "legacy-fish" : "painted-atlas";
+      legacy ? "legacy-fish" : dino ? "painted-dinosaur" : "painted-atlas";
     materials.set(c.id, mat);
   }
   const group = new THREE.Group(),

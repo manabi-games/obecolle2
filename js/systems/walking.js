@@ -1,4 +1,4 @@
-import { FACILITIES } from "../data/catalog.js";
+import { FACILITIES } from "../data/catalog.js?v=visual-12-r2";
 
 const HIDDEN_FACILITIES = new Set(["fishing", "excavation", "arena"]);
 const WALK_FACILITIES = FACILITIES.filter((f) => !HIDDEN_FACILITIES.has(f.id));

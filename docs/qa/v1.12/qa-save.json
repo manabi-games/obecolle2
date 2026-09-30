@@ -1,0 +1,354 @@
+{
+  "saveVersion": 1,
+  "gameVersion": "1.0.0",
+  "meta": {
+    "slotId": 2,
+    "createdAt": "2026-09-29T14:26:38.742Z",
+    "updatedAt": "2026-09-29T14:26:38.743Z",
+    "playCount": 1
+  },
+  "player": {
+    "name": "てすと",
+    "appearance": {
+      "skin": 0,
+      "hair": 0,
+      "hairColor": 0,
+      "eyes": 0,
+      "brows": 0,
+      "mouth": 0,
+      "face": 0,
+      "outfit": "clothing_0"
+    },
+    "badges": []
+  },
+  "progression": {
+    "manabiRank": 10,
+    "stars": 0,
+    "coins": 9999,
+    "tickets": 3,
+    "unlockedFacilities": [
+      "mansion",
+      "school",
+      "typing",
+      "dojo",
+      "arena",
+      "fishing",
+      "shop",
+      "excavation",
+      "plaza"
+    ],
+    "storyFlags": {},
+    "metrics": {}
+  },
+  "learning": {
+    "math": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "japanese": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "clock": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "money": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "english": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "fish": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "dinosaurs": {
+      "unlocked": 1,
+      "levels": {}
+    },
+    "animals": {
+      "unlocked": 1,
+      "levels": {}
+    }
+  },
+  "typing": {
+    "level": 1,
+    "totalChars": 0,
+    "totalCorrect": 0,
+    "totalMisses": 0,
+    "bestSpeed": 0,
+    "bestAccuracy": 0,
+    "bestCombo": 0,
+    "personalBestCount": 0,
+    "buddyPower": 0,
+    "modes": {},
+    "completedLevels": []
+  },
+  "friends": {
+    "friend_haru": {
+      "affinity": 20,
+      "needs": {
+        "mood": 70,
+        "hunger": 20,
+        "energy": 80,
+        "curiosity": 50,
+        "social": 50
+      },
+      "gifts": [],
+      "relationships": {},
+      "request": null
+    },
+    "friend_2": {
+      "affinity": 20,
+      "needs": {
+        "mood": 70,
+        "hunger": 20,
+        "energy": 80,
+        "curiosity": 50,
+        "social": 50
+      },
+      "gifts": [],
+      "relationships": {},
+      "request": null
+    }
+  },
+  "fishing": {
+    "unlockedAreas": [
+      "water_0"
+    ],
+    "ownedRods": [
+      "rod_0"
+    ],
+    "equippedRod": "rod_0",
+    "fishBook": {},
+    "aquarium": [],
+    "totalCatches": 0,
+    "pity": {},
+    "trip": null
+  },
+  "dinosaurs": {
+    "unlockedAreas": [
+      "dig_0"
+    ],
+    "tools": [
+      "tool_0"
+    ],
+    "equippedTool": "tool_0",
+    "fossilBook": {},
+    "completedCount": 0,
+    "pity": 0,
+    "trip": null
+  },
+  "arena": {
+    "unlockedTournaments": [],
+    "clearedTournaments": [],
+    "winsByCreature": {},
+    "cards": {},
+    "shinyCards": [],
+    "active": null
+  },
+  "inventory": {
+    "furniture": {
+      "furniture_0": 2,
+      "furniture_1": 2,
+      "furniture_3": 2,
+      "furniture_4": 2,
+      "furniture_8": 2,
+      "furniture_2": 2,
+      "furniture_5": 2,
+      "furniture_6": 2,
+      "furniture_7": 2,
+      "furniture_9": 2,
+      "furniture_10": 2,
+      "furniture_11": 2,
+      "furniture_12": 2,
+      "furniture_13": 2,
+      "furniture_14": 2,
+      "furniture_15": 2,
+      "furniture_16": 2,
+      "furniture_17": 2,
+      "furniture_18": 2,
+      "furniture_19": 2,
+      "furniture_20": 2,
+      "furniture_21": 2,
+      "furniture_22": 2,
+      "furniture_23": 2,
+      "furniture_24": 2,
+      "furniture_25": 2,
+      "furniture_26": 2,
+      "furniture_27": 2,
+      "furniture_28": 2,
+      "furniture_29": 2,
+      "furniture_30": 2,
+      "furniture_31": 2,
+      "furniture_32": 2,
+      "furniture_33": 2,
+      "furniture_34": 2,
+      "furniture_35": 2,
+      "furniture_36": 2,
+      "furniture_37": 2,
+      "furniture_38": 2,
+      "furniture_39": 2,
+      "furniture_40": 2,
+      "furniture_41": 2,
+      "furniture_42": 2,
+      "furniture_43": 2,
+      "furniture_44": 2,
+      "furniture_45": 2,
+      "furniture_46": 2,
+      "furniture_47": 2,
+      "furniture_48": 2,
+      "furniture_49": 2,
+      "furniture_50": 2,
+      "furniture_51": 2,
+      "furniture_52": 2,
+      "furniture_53": 2,
+      "furniture_54": 2,
+      "furniture_55": 2,
+      "furniture_56": 2,
+      "furniture_57": 2,
+      "furniture_58": 2,
+      "furniture_59": 2
+    },
+    "clothing": {
+      "clothing_0": 2,
+      "clothing_2": 2,
+      "clothing_3": 2,
+      "clothing_4": 2,
+      "clothing_5": 2,
+      "clothing_6": 2,
+      "clothing_7": 2,
+      "clothing_8": 2,
+      "clothing_9": 2,
+      "clothing_10": 2,
+      "clothing_11": 2,
+      "clothing_12": 2,
+      "clothing_13": 2,
+      "clothing_14": 2,
+      "clothing_15": 2,
+      "clothing_16": 2,
+      "clothing_17": 2,
+      "clothing_18": 2,
+      "clothing_19": 2,
+      "clothing_20": 2,
+      "clothing_21": 2,
+      "clothing_22": 2,
+      "clothing_23": 2,
+      "clothing_24": 2,
+      "clothing_25": 2,
+      "clothing_26": 2,
+      "clothing_27": 2,
+      "clothing_28": 2,
+      "clothing_29": 2,
+      "clothing_30": 2,
+      "clothing_31": 2,
+      "clothing_32": 2,
+      "clothing_33": 2,
+      "clothing_34": 2,
+      "clothing_35": 2,
+      "clothing_36": 2,
+      "clothing_37": 2,
+      "clothing_38": 2,
+      "clothing_39": 2,
+      "dojo_reward_20": 2,
+      "reward_fish": 2,
+      "reward_dinosaur": 2,
+      "reward_typing": 2,
+      "reward_arena": 2
+    },
+    "accessories": {
+      "hat_1": 2,
+      "hat_2": 2,
+      "hat_3": 2,
+      "hat_4": 2,
+      "hat_5": 2,
+      "hat_6": 2,
+      "hat_7": 2,
+      "hat_8": 2,
+      "hat_9": 2,
+      "hat_10": 2,
+      "hat_11": 2,
+      "hat_12": 2,
+      "hat_13": 2,
+      "hat_14": 2,
+      "hat_15": 2,
+      "hat_16": 2,
+      "hat_17": 2,
+      "hat_18": 2,
+      "hat_19": 2,
+      "glasses_0": 2,
+      "glasses_1": 2,
+      "glasses_2": 2,
+      "glasses_3": 2,
+      "glasses_4": 2,
+      "glasses_5": 2,
+      "glasses_6": 2,
+      "glasses_7": 2,
+      "glasses_8": 2,
+      "glasses_9": 2,
+      "dojo_reward_10": 2,
+      "dojo_reward_60": 2
+    },
+    "specialItems": {
+      "wallpaper_0": 1,
+      "floor_0": 1,
+      "wallpaper_1": 1,
+      "wallpaper_2": 1,
+      "wallpaper_3": 1,
+      "wallpaper_4": 1,
+      "wallpaper_5": 1,
+      "wallpaper_6": 1,
+      "wallpaper_7": 1,
+      "wallpaper_8": 1,
+      "wallpaper_9": 1,
+      "wallpaper_10": 1,
+      "wallpaper_11": 1,
+      "floor_1": 1,
+      "floor_2": 1,
+      "floor_3": 1,
+      "floor_4": 1,
+      "floor_5": 1,
+      "floor_6": 1,
+      "floor_7": 1,
+      "floor_8": 1,
+      "floor_9": 1
+    }
+  },
+  "room": {
+    "wallpaper": "wallpaper_0",
+    "floor": "floor_0",
+    "slots": {
+      "0": "furniture_4",
+      "1": "furniture_3",
+      "2": "furniture_8",
+      "3": "furniture_0"
+    },
+    "aquariumFish": [],
+    "dinosaurFigures": [],
+    "trophies": [],
+    "photos": []
+  },
+  "collections": {
+    "animals": [
+      "animal_1",
+      "animal_3",
+      "animal_8"
+    ]
+  },
+  "missions": {
+    "date": "",
+    "daily": [],
+    "completedToday": false
+  },
+  "achievements": {},
+  "memories": [],
+  "settings": {
+    "music": 0.25,
+    "sound": 0.5,
+    "quality": "standard",
+    "keyboard": true
+  }
+}

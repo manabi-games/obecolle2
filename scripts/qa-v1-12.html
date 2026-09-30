@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>v1.12 がくしゅう ひょうじ QA</title>
+  <link rel="stylesheet" href="../css/game.css?v=visual-12-r2">
+</head>
+<body>
+  <main id="screen">
+    <section class="panel small quiz-screen-panel">
+      <div class="quiz-top"><span class="pill" id="level"></span><b>1 / 5</b><button>Ⅱ</button></div>
+      <div class="progress-track"><div></div></div>
+      <div class="question" id="question"></div>
+      <div id="visual"></div>
+      <div class="answers" id="answers"></div>
+      <div id="feedback" class="feedback"></div>
+    </section>
+  </main>
+  <script type="module">
+    import { question } from "../js/systems/learning.js";
+    import { games } from "../js/games.js?v=visual-12-r2";
+    const params = new URLSearchParams(location.search);
+    const subject = params.get("subject") || "math";
+    const level = Number(params.get("level") || 9);
+    const index = Number(params.get("index") || 0);
+    const q = question(subject, level, index);
+    if (params.has("count") && q.visual === "dots") {
+      q.count = Number(params.get("count"));
+      q.answer = String(q.count);
+      q.options = [q.answer, "8", "10", "12"];
+    }
+    document.querySelector("#level").textContent = `${subject} Lv${level}`;
+    document.querySelector("#question").textContent = q.text;
+    document.querySelector("#visual").innerHTML = games.questionVisual(q);
+    document.querySelector("#answers").innerHTML = q.options.map((option) => `<button class="answer-select">${option}</button>`).join("");
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
-import { ITEMS } from "./data/catalog.js";
-import { itemArt } from "./ui-visuals.js?v=visual-10";
+import { ITEMS } from "./data/catalog.js?v=visual-12-r2";
+import { itemArt } from "./ui-visuals.js?v=visual-12-r2";
+import { currentFriendAppearance, itemById, itemVisual } from "./systems/visual-state.js?v=visual-12-r2";
 
 const E = (x) =>
   String(x ?? "").replace(
@@ -110,8 +111,9 @@ export function appearancePortrait(
       OUTFIT[outfit % OUTFIT.length],
     hairStyle = Number(appearance.hair || 0) % 12,
     cls = `${hidden ? "friend-avatar silhouette" : "friend-avatar"} hair-${hairStyle}`,
-    glasses = appearance.glasses || appearance.eyewear
-      ? '<i class="friend-glasses"></i>'
+    glassesItem = itemById(appearance.glasses) || (appearance.eyewear ? itemById("glasses_0") : null),
+    glasses = glassesItem
+      ? `<span class="friend-glasses glasses-${itemVisual(glassesItem)}">${itemArt(glassesItem)}</span>`
       : "",
     outfitItem = ITEMS.find((i) => i.id === outfitId),
     hatItem = ITEMS.find((i) => i.id === (appearance.hat || appearance.headwear)),
@@ -119,10 +121,10 @@ export function appearancePortrait(
   return `<span class="${cls} costume-${costume}" role="img" aria-label="${hidden ? "まだ みつけていない あばたー" : E(label)}" style="--hair:${HAIR[hairIndex]};--skin:${SKIN[skinIndex]};--shirt:${shirt}"><i class="friend-hair"></i><i class="friend-head"><b class="friend-eye left"></b><b class="friend-eye right"></b><b class="friend-mouth"></b>${glasses}</i><i class="friend-body"><b class="friend-costume-detail"></b></i>${hatItem ? `<i class="friend-hat hat-${hatItem.visual || 'cap'}" style="--hat-color:${hatItem.color}"></i>` : ""}</span>`;
 }
 
-export function friendPortrait(friend, hidden = false) {
+export function friendPortrait(friend, hidden = false, state = null) {
   if (!friend) return "";
   return appearancePortrait(
-    friend.baseAppearance || {},
+    currentFriendAppearance(friend, state),
     friend.defaultOutfit || 0,
     hidden,
     friend.name,

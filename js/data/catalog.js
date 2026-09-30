@@ -465,6 +465,9 @@ const furnitureTypes = [
   "PCですく",
   "かざるだな",
 ];
+export const FURNITURE_VISUALS = [
+  "sofa", "table", "chair", "bookshelf", "bed", "lamp", "clock", "plant", "computer-desk", "display-shelf",
+];
 const COSTUMES = [
   ["いつもの ぱーかー", "hoodie"], ["やきゅうの せんしゅ", "baseball"],
   ["うちゅうひこうし", "astronaut"], ["にんじゃ", "ninja"],
@@ -517,7 +520,7 @@ export const ITEMS = [
     price: 150 + (i % 5) * 50,
     rank: 3 + Math.floor(i / 10),
     theme: Math.floor(i / 10),
-    visual: furnitureTypes[i % 10],
+    visual: FURNITURE_VISUALS[i % 10],
     rare: i >= 40,
   })),
   ...Array.from({ length: 40 }, (_, i) => ({
@@ -557,6 +560,7 @@ export const ITEMS = [
     id: "wallpaper_" + i,
     name: "かべがみ " + (i + 1),
     type: "wallpaper",
+    visual: "wallpaper-grid",
     color: COLORS[i % 8],
     price: 100,
     rank: 3,
@@ -566,6 +570,7 @@ export const ITEMS = [
     id: "floor_" + i,
     name: "ゆか " + (i + 1),
     type: "floor",
+    visual: "floor-tile",
     color: COLORS[i % 8],
     price: 100,
     rank: 3,
@@ -674,6 +679,7 @@ export const MISSIONS = [
 export const ACHIEVEMENTS = Array.from({ length: 28 }, (_, i) => ({
   id: "achievement_" + i,
   metric: ["learning", "typing", "fish", "dig", "arena", "talk", "room"][i % 7],
+  legacy: ["fish", "dig", "arena"].includes(["learning", "typing", "fish", "dig", "arena", "talk", "room"][i % 7]),
   target: [1, 5, 20, 50][Math.floor(i / 7)],
   name:
     [
@@ -694,7 +700,8 @@ export const TYPING_MODES = [
   ["rescue", "さかなれすきゅー", 4],
   ["escape", "きょうりゅうからにげろ！", 7],
   ["battle", "たいぴんぐばとる", 10],
-].map(([id, name, level]) => ({ id, name, level }));
+].map(([id, name, level]) => ({ id, name, level, legacy: id !== "basic" }));
+export const LEGACY_TYPING_MODES = TYPING_MODES.filter((mode) => mode.legacy);
 export const PART_NAMES = {
   head: "あたま",
   body: "どうたい",
@@ -826,6 +833,7 @@ export const REWARD_CLOTHING = [
   name,
   color,
   type: "clothing",
+  visual: ({ reward_fish: "sailor", reward_dinosaur: "dinosaur", reward_typing: "racer", reward_arena: "royal" })[id],
   shape: 4,
   rank: 10,
   price: 0,
@@ -836,7 +844,7 @@ ITEMS.push(...REWARD_CLOTHING);
 export const SUBJECT_UNLOCKS = [
   {
     id: "money_shop",
-    subject: "money",
+    subject: "math",
     level: 5,
     itemIds: ITEMS.filter((i) => i.type === "furniture" && i.theme === 4).map(
       (i) => i.id,
@@ -854,7 +862,7 @@ export const SUBJECT_UNLOCKS = [
   },
   {
     id: "clock_interior",
-    subject: "clock",
+    subject: "math",
     level: 5,
     itemIds: ITEMS.filter((i) => i.type === "furniture" && i.shape === 6).map(
       (i) => i.id,

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>v1.12 みため QA</title><link rel="stylesheet" href="../css/game.css?v=visual-12-r2">
+<style>
+body { margin: 0; background:#e8f2ef; color:#315559; font: 16px sans-serif; }
+h1 { margin: 12px 20px; font-size: 22px; }
+#cards { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin:12px; }
+.qa-card { min-width:0; text-align:center; border:2px solid #c6d7ca; border-radius:12px; background:#fff8e8; padding:5px; }
+.qa-card img.avatar { display:block; width:100%; height:190px; object-fit:contain; background:#d9edeb; }
+.qa-card .item-preview { margin:2px auto; width:70px; height:52px; }
+.qa-card strong { display:block; font-size:14px; }
+#hero { display:none; margin:15px auto; width:min(650px,95vw); text-align:center; background:#fff8e8; border-radius:14px; padding:10px; }
+#hero img.avatar { width:100%; max-height:500px; object-fit:contain; background:#d9edeb; }
+#hero .item-preview { margin:auto; }
+body.single #cards { display:none; } body.single #hero { display:block; }
+</style></head><body><h1>みための かくにん： <span id="title"></span></h1><div id="hero"></div><div id="cards"></div>
+<script type="module">
+import { ITEMS } from '../js/data/catalog.js?v=visual-12-r2';
+import { itemPreview } from '../js/ui-child.js?v=visual-12-r2';
+import { THREE, character } from '../js/three/factories.js?v=visual-12-r2';
+const params=new URLSearchParams(location.search), kind=params.get('kind')||'glasses', selected=params.get('id');
+const all=selected?ITEMS.filter(x=>x.id===selected):ITEMS.filter(x=>kind==='clothing'?x.type==='clothing'&&x.id.startsWith('clothing_'):kind==='hat'?x.id.startsWith('hat_'):x.id.startsWith('glasses_'));
+const page=Math.max(0,Number(params.get('page')||0));
+const rows=selected?all:all.slice(page*10,page*10+10);
+if(selected)document.body.classList.add('single');
+document.querySelector('#title').textContent=selected||`${kind} ${page+1}/${Math.ceil(all.length/10)}`;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:true});
+renderer.setPixelRatio(1); renderer.setSize(selected?500:220,selected?500:230);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene(); scene.background=new THREE.Color('#d9edeb');
+scene.add(new THREE.HemisphereLight('#ffffff','#aac1b7',2));
+const light=new THREE.DirectionalLight('#ffffff',2);light.position.set(2,5,5);scene.add(light);
+const cam=new THREE.PerspectiveCamera(35,selected?1:220/230,.1,100);
+cam.position.set(0,selected?1.47:1.5,selected?3.05:4.0);cam.lookAt(0,1.23,0);
+for(const item of rows){
+  const appearance={skin:0,hair:0,hairColor:0,eyes:0,brows:0,mouth:0,face:0,outfit:kind==='clothing'?item.id:'clothing_0'};
+  if(item.id.startsWith('hat_')) appearance.hat=item.id;
+  if(item.id.startsWith('glasses_')) appearance.glasses=item.id;
+  const model=character(appearance);scene.add(model);renderer.render(scene,cam);
+  const card=document.createElement('div');card.className='qa-card';
+  card.innerHTML=`<img class="avatar" alt="${item.name} 3D" src="${renderer.domElement.toDataURL('image/png')}">${itemPreview(item)}<strong>${item.name} (${item.visual})</strong>`;
+  if(selected){const link=document.createElement('a');link.href=card.querySelector('img.avatar').src;link.download=`${item.id}-3d.png`;link.textContent='3D がぞうを ほぞん';card.append(link);}
+  (selected?document.querySelector('#hero'):document.querySelector('#cards')).append(card);
+  scene.remove(model);
+}
+renderer.dispose();
+</script></body></html>

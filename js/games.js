@@ -6,8 +6,8 @@ import {
   TYPING_MODES,
   TOURNAMENTS,
   ITEMS,
-} from "./data/catalog.js";
-import { generateSession } from "./systems/learning.js";
+} from "./data/catalog.js?v=visual-12-r2";
+import { generateSession } from "./systems/learning.js?v=visual-12-r2";
 import { TypingEngine, typingWords, typingScore, dojoWords } from "./systems/typing.js";
 import * as rules from "./systems/rules.js";
 const E = (x) =>
@@ -66,7 +66,7 @@ export const games = {
   },
   questionVisual(q) {
     if (q.visual === "dots")
-      return `<div class="dots">${"●".repeat(q.count)}</div>`;
+      return `<div class="dots" role="img" aria-label="かぞえる まる">${Array.from({ length: q.count }, () => '<span class="dot" aria-hidden="true">●</span>').join("")}</div>`;
     if (q.visual === "coins")
       return `<div class="coins">${q.coins.map((c) => `<span class="coin coin-${c}">${c}<small>えん</small></span>`).join("")}</div>`;
     if (q.visual === "clock")

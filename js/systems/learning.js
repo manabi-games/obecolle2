@@ -1,5 +1,5 @@
 import { focusedQuestion } from "./focused-learning.js";
-import { FISH, DINOS, ANIMALS } from "../data/catalog.js";
+import { FISH, DINOS, ANIMALS } from "../data/catalog.js?v=visual-12-r2";
 
 const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const pick = (a) => a[rand(0, a.length - 1)];

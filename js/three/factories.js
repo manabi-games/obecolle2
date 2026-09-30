@@ -1,5 +1,6 @@
 import * as THREE from "../../assets/vendor/three.module.js";
-import { COLORS, ITEMS } from "../data/catalog.js";
+import { COLORS, FURNITURE_VISUALS } from "../data/catalog.js?v=visual-12-r2";
+import { itemById, itemVisual } from "../systems/visual-state.js?v=visual-12-r2";
 import { illustratedCreature } from "./illustrations.js";
 export { THREE };
 const materials = new Map(),
@@ -63,10 +64,11 @@ export function character(appearance = {}, scale = 1) {
   g.add(body);
   const skin = SKIN[appearance.skin || 0],
     hair = HAIR[appearance.hairColor || 0],
-    outfit = ITEMS.find((x) => x.id === appearance.outfit),
+    outfit = itemById(appearance.outfit),
     shirt = outfit?.color || COLORS[(appearance.outfitIndex || 0) % 8];
   const torso = add(body, "charball", shirt, [0.36, 0.43, 0.24], [0, 0.87, 0]);
-  const costume = outfit?.visual || "hoodie";
+  const costume = itemVisual(outfit) || "hoodie";
+  body.name = `costume-${costume}`;
   const front = (kind, color, size, pos) => add(body, kind, color, size, pos);
   if (costume === "hoodie") {
     front("charball", "#276970", [0.37, 0.2, 0.22], [0, 1.2, -0.03]);
@@ -97,6 +99,55 @@ export function character(appearance = {}, scale = 1) {
     for (const y of [0.77, 0.96, 1.14]) front("box", "#fff1d0", [0.52, 0.035, 0.04], [0, y, 0.24]);
   } else {
     front("box", "#fff1d0", [0.12, 0.28, 0.05], [0, 0.92, 0.25]);
+  }
+  // Each semantic outfit keeps a feature that remains readable on the small town model.
+  if (costume === "baseball") {
+    for (const x of [-0.18, 0.18]) front("box", "#f8f1dd", [0.055, 0.35, 0.04], [x, 0.89, 0.27]);
+  } else if (costume === "astronaut") {
+    front("box", "#6db4cb", [0.27, 0.14, 0.07], [0, 0.89, 0.29]);
+    front("box", "#f0cf6e", [0.45, 0.08, 0.07], [0, 0.7, 0.25]);
+  } else if (costume === "robot") {
+    front("box", "#dceaf1", [0.45, 0.36, 0.075], [0, 0.94, 0.29]);
+    front("box", "#435d6c", [0.34, 0.21, 0.025], [0, 0.98, 0.34]);
+    for (const x of [-0.1, 0.1]) front("charball", x < 0 ? "#ed776f" : "#efd16d", [0.055, 0.055, 0.025], [x, 1.01, 0.37]);
+    front("box", "#a7d8db", [0.16, 0.025, 0.02], [0, 0.91, 0.38]);
+  } else if (costume === "pirate") {
+    const sash = front("box", "#d8b26b", [0.12, 0.56, 0.07], [0.05, 0.96, 0.29]);
+    sash.rotation.z = -0.55;
+  } else if (costume === "chef") {
+    for (const y of [0.82, 0.96, 1.1]) front("charball", "#5d6e70", [0.035, 0.035, 0.025], [0.1, y, 0.31]);
+  } else if (costume === "explorer") {
+    front("box", "#a98b5f", [0.62, 0.1, 0.08], [0, 0.72, 0.25]);
+  } else if (costume === "dinosaur") {
+    front("box", "#f1d984", [0.24, 0.2, 0.07], [0, 0.89, 0.29]);
+  } else if (costume === "pajamas") {
+    for (const y of [0.76, 0.89, 1.02]) front("box", "#dce4f2", [0.55, 0.035, 0.04], [0, y, 0.28]);
+  } else if (costume === "racer") {
+    const stripe = front("box", "#e76a63", [0.11, 0.57, 0.07], [-0.06, 0.93, 0.29]);
+    stripe.rotation.z = 0.42;
+  } else if (costume === "scientist") {
+    for (const x of [-0.23, 0.23]) front("box", "#f8f5e9", [0.13, 0.56, 0.07], [x, 0.9, 0.26]);
+  } else if (costume === "royal") {
+    front("box", "#f3d276", [0.6, 0.13, 0.08], [0, 1.2, 0.22]);
+    front("charball", "#e87169", [0.1, 0.1, 0.04], [0, 0.96, 0.3]);
+  } else if (costume === "hero") {
+    front("box", "#ed7166", [0.57, 0.09, 0.07], [0, 1.18, 0.25]);
+    front("box", "#ed7166", [0.56, 0.63, 0.04], [0, 0.9, -0.26]);
+  } else if (costume === "festival") {
+    const sash = front("box", "#f8e7c7", [0.13, 0.58, 0.06], [0.02, 0.94, 0.29]);
+    sash.rotation.z = 0.57;
+  } else if (costume === "scholar") {
+    front("box", "#745f5b", [0.22, 0.16, 0.07], [0.13, 0.78, 0.28]);
+  } else if (costume === "sailor") {
+    front("box", "#315d84", [0.59, 0.08, 0.07], [0, 1.14, 0.25]);
+    front("box", "#e6ce80", [0.1, 0.1, 0.05], [0, 0.97, 0.29]);
+  } else if (costume === "raincoat") {
+    front("box", "#f4e9ae", [0.5, 0.07, 0.07], [0, 0.71, 0.26]);
+  } else if (costume === "soccer") {
+    front("box", "#f2f3e8", [0.31, 0.35, 0.06], [0, 0.94, 0.27]);
+    front("charball", "#344c57", [0.09, 0.09, 0.04], [0, 0.93, 0.32]);
+  } else if (costume === "forest") {
+    for (const x of [-0.22, 0.22]) front("charball", "#a8c375", [0.14, 0.22, 0.08], [x, 1.2, 0.23]);
   }
   add(body, "box", "#c7ac82", [0.53, 0.25, 0.35], [0, 0.5, 0]);
   const legs = [];
@@ -385,19 +436,58 @@ export function character(appearance = {}, scale = 1) {
     );
     arms.push(arm);
   }
+  if (!appearance.hat) {
+    if (costume === "baseball") {
+      add(head, "charball", "#d96361", [0.56, 0.2, 0.44], [0, 0.46, 0]);
+      add(head, "box", "#d96361", [0.56, 0.05, 0.26], [0, 0.34, 0.37]);
+    } else if (costume === "astronaut") {
+      add(head, "charball", "#e6f2ef", [0.61, 0.24, 0.49], [0, 0.44, -0.02]);
+      add(head, "box", "#6fb9d1", [0.72, 0.1, 0.05], [0, 0.28, 0.47]);
+      add(head, "ring", "#e6f2ef", [0.48, 0.51, 0.48], [0, -0.015, 0.51]);
+    } else if (costume === "ninja") {
+      add(head, "charball", "#34465a", [0.58, 0.28, 0.49], [0, 0.37, -0.02]);
+      add(head, "box", "#34465a", [0.68, 0.13, 0.05], [0, -0.24, 0.48]);
+    } else if (costume === "pirate") {
+      add(head, "charball", "#34465a", [0.62, 0.21, 0.48], [0, 0.48, 0]);
+      add(head, "box", "#34465a", [0.93, 0.08, 0.4], [0, 0.38, 0.08]);
+    } else if (costume === "chef") {
+      for (const x of [-0.25, 0, 0.25]) add(head, "charball", "#fff9e9", [0.23, 0.22, 0.2], [x, 0.61, 0]);
+      add(head, "box", "#fff9e9", [0.62, 0.16, 0.43], [0, 0.41, 0]);
+    } else if (costume === "explorer") {
+      add(head, "charcylinder", "#c6ae77", [0.45, 0.24, 0.38], [0, 0.53, 0]);
+      add(head, "charcylinder", "#c6ae77", [0.72, 0.04, 0.58], [0, 0.39, 0]);
+    } else if (costume === "dinosaur") {
+      for (const z of [-0.25, 0.02, 0.27]) add(head, "cone", "#f0d883", [0.14, 0.22, 0.14], [0, 0.53, z]);
+    } else if (costume === "royal") {
+      add(head, "charcylinder", "#efd078", [0.47, 0.13, 0.42], [0, 0.46, 0]);
+      for (const x of [-0.32, 0, 0.32]) add(head, "cone", "#efd078", [0.12, 0.22, 0.1], [x, 0.63, 0.02]);
+    } else if (costume === "raincoat") {
+      add(head, "charball", "#f0d678", [0.59, 0.23, 0.46], [0, 0.4, -0.05]);
+    }
+  }
   if (appearance.hat) {
-    const item = ITEMS.find((x) => x.id === appearance.hat);
-    const kind = item?.visual || "cap", color = item?.color || "#dfb45d";
+    const item = itemById(appearance.hat);
+    const kind = itemVisual(item) || "cap", color = item?.color || "#dfb45d";
+    head.userData.hatVisual = kind;
     if (kind === "headband") {
       add(head, "box", color, [0.9, 0.11, 0.08], [0, 0.23, 0.48]);
       add(head, "charball", "#f7e5b5", [0.13, 0.13, 0.07], [0, 0.24, 0.54]);
       for (const y of [0.08, -0.05]) add(head, "box", color, [0.07, 0.21, 0.05], [0.46, y, -0.06]);
-    } else if (["crown", "flower"].includes(kind)) {
+    } else if (kind === "flower") {
+      add(head, "charcylinder", "#78a878", [0.55, 0.045, 0.46], [0, 0.42, 0]);
+      for (const x of [-0.32, -0.16, 0, 0.16, 0.32]) {
+        add(head, "charball", "#ed9ba7", [0.085, 0.07, 0.06], [x, 0.53 - Math.abs(x) * 0.1, 0.32]);
+        add(head, "charball", "#f8df7d", [0.025, 0.025, 0.012], [x, 0.53 - Math.abs(x) * 0.1, 0.385]);
+      }
+    } else if (kind === "crown") {
       add(head, "charcylinder", color, [0.53, 0.12, 0.43], [0, 0.44, 0]);
-      for (const x of [-0.35, 0, 0.35]) add(head, kind === "crown" ? "cone" : "charball", kind === "crown" ? "#f5d875" : "#ed9ba7", [0.16, 0.28, 0.13], [x, 0.68, 0]);
-    } else if (["ears", "dino"].includes(kind)) {
+      for (const x of [-0.35, 0, 0.35]) add(head, "cone", "#f5d875", [0.16, 0.28, 0.13], [x, 0.68, 0]);
+    } else if (kind === "dino") {
+      add(head, "charball", color, [0.58, 0.27, 0.5], [0, 0.43, 0]);
+      for (const x of [-0.33, 0, 0.33]) add(head, "cone", "#eacc76", [0.16, 0.28, 0.16], [x, 0.66, 0.08]);
+    } else if (kind === "ears") {
       add(head, "charball", color, [0.56, 0.25, 0.47], [0, 0.42, 0]);
-      for (const x of [-0.32, 0.32]) add(head, "cone", kind === "dino" ? "#eacc76" : color, [0.18, 0.34, 0.15], [x, 0.72, 0]);
+      for (const x of [-0.32, 0.32]) add(head, "cone", color, [0.18, 0.34, 0.15], [x, 0.72, 0]);
     } else if (kind === "pirate") {
       add(head, "charball", "#35475a", [0.6, 0.26, 0.48], [0, 0.46, 0]);
       add(head, "box", "#35475a", [0.92, 0.1, 0.43], [0, 0.37, 0.05]);
@@ -408,55 +498,84 @@ export function character(appearance = {}, scale = 1) {
       add(head, "charcylinder", crownColor, [kind === "straw" ? 0.78 : 0.69, 0.045, 0.61], [0, 0.38, 0]);
       add(head, "box", color, [0.78, 0.08, 0.07], [0, 0.46, 0.34]);
     } else if (["helmet", "space", "ninja"].includes(kind)) {
-      add(head, "charball", kind === "space" ? "#e7f2ef" : kind === "ninja" ? "#34475b" : color, [0.63, 0.4, 0.53], [0, 0.33, -0.04]);
-      add(head, "box", kind === "space" ? "#7cbed0" : kind === "ninja" ? "#f2dfb7" : "#f0ce74", [0.72, kind === "ninja" ? 0.08 : 0.19, 0.055], [0, 0.1, 0.49]);
+      const shell = kind === "space" ? "#e7f2ef" : kind === "ninja" ? "#34475b" : color;
+      add(head, "charball", shell, [0.65, 0.42, 0.57], [0, 0.36, -0.01]);
+      add(head, "ring", shell, [0.48, 0.51, 0.48], [0, -0.015, 0.53]);
+      if (kind === "ninja") add(head, "box", "#34475b", [0.81, 0.19, 0.07], [0, -0.23, 0.51]);
+      else add(head, "box", kind === "space" ? "#7cbed0" : "#f0ce74", [0.72, 0.11, 0.055], [0, 0.29, 0.5]);
       if (kind === "helmet") add(head, "box", "#707d83", [0.91, 0.08, 0.43], [0, 0.06, 0.13]);
     } else if (["wizard", "chef", "graduate"].includes(kind)) {
-      add(head, kind === "graduate" ? "box" : "charcylinder", color, [0.54, 0.12, 0.43], [0, 0.44, 0]);
-      add(head, kind === "wizard" ? "cone" : "charcylinder", kind === "chef" ? "#fff9e8" : color, [0.44, kind === "wizard" ? 0.65 : 0.28, 0.35], [0, 0.67, 0]);
+      if (kind === "graduate") {
+        add(head, "charcylinder", color, [0.4, 0.17, 0.37], [0, 0.46, 0]);
+        add(head, "box", "#344b5c", [0.91, 0.045, 0.76], [0, 0.57, 0]);
+        add(head, "charball", "#edca67", [0.045, 0.045, 0.04], [0.35, 0.55, 0.35]);
+      } else {
+        add(head, "charcylinder", color, [0.54, 0.12, 0.43], [0, 0.44, 0]);
+        add(head, kind === "wizard" ? "cone" : "charcylinder", kind === "chef" ? "#fff9e8" : color, [0.44, kind === "wizard" ? 0.9 : 0.28, 0.35], [0, kind === "wizard" ? 0.8 : 0.67, 0]);
+      }
     } else {
       add(head, "charball", color, [0.57, kind === "space" ? 0.43 : 0.25, 0.48], [0, kind === "space" ? 0.4 : 0.43, 0]);
       add(head, "charball", kind === "straw" ? "#ebd289" : color, [kind === "straw" || kind === "explorer" ? 0.7 : 0.45, 0.04, 0.32], [0, 0.38, 0.35]);
     }
   }
   if (appearance.glasses || appearance.eyewear) {
-    const boughtStyle = String(appearance.glasses || "").match(/^glasses_(\d+)$/);
-    const style = boughtStyle ? (Number(boughtStyle[1]) % 5) + 1 : appearance.eyewear || 1;
-    for (const x of [-0.19, 0.19]) {
-      if (style === 5 && x < 0) continue;
-      if (style === 2 || style === 3) {
-        if (style === 3)
-          add(head, "box", "#253d48", [0.3, 0.2, 0.03], [x, -0.015, 0.51]);
-        else
-          for (const [dx, dy, w, h] of [
-            [0, 0.1, 0.3, 0.025],
-            [0, -0.1, 0.3, 0.025],
-            [-0.15, 0, 0.025, 0.2],
-            [0.15, 0, 0.025, 0.2],
-          ])
-            add(
-              head,
-              "box",
-              "#665057",
-              [w, h, 0.025],
-              [x + dx, -0.015 + dy, 0.51],
-            );
-      } else {
-        const ring = add(
-          head,
-          "ring",
-          style === 4 ? "#df927f" : "#5b686a",
-          [0.145, 0.17, 0.15],
-          [x, -0.015, 0.5],
-        );
-        if (style === 4) {
-          ring.scale.set(0.18, 0.1, 0.15);
-          ring.rotation.z = Math.sign(x) * 0.3;
+    const item = itemById(appearance.glasses);
+    const kind = item ? itemVisual(item) : ["round", "round", "square", "sunglasses", "heart", "monocle"][appearance.eyewear] || "round";
+    const frame = item?.color || "#586b72";
+    const eyewear = new THREE.Group();
+    eyewear.name = `glasses-${kind}`;
+    eyewear.userData.visualKey = kind;
+    head.add(eyewear);
+    const polygon = (x, color, outer, inner = null, points = 5) => {
+      const shape = new THREE.Shape();
+      const steps = inner ? points * 2 : points;
+      for (let i = 0; i < steps; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI * 2) / steps;
+        const r = inner && i % 2 ? inner : outer;
+        const px = Math.cos(a) * r, py = Math.sin(a) * r;
+        if (!i) shape.moveTo(px, py); else shape.lineTo(px, py);
+      }
+      shape.closePath();
+      const lens = new THREE.Mesh(new THREE.ShapeGeometry(shape), material(color));
+      lens.position.set(x, -0.015, 0.525);
+      eyewear.add(lens);
+    };
+    const eyes = kind === "monocle" ? [0.19] : [-0.19, 0.19];
+    for (const x of eyes) {
+      if (kind === "star") {
+        polygon(x, "#f4d66e", 0.17, 0.08);
+        add(eyewear, "charball", "#fff6d4", [0.055, 0.055, 0.008], [x, -0.015, 0.53]);
+      } else if (kind === "heart") {
+        const heart = new THREE.Shape();
+        heart.moveTo(0, -0.14);
+        heart.bezierCurveTo(-0.25, 0.01, -0.14, 0.19, 0, 0.08);
+        heart.bezierCurveTo(0.14, 0.19, 0.25, 0.01, 0, -0.14);
+        const lens = new THREE.Mesh(new THREE.ShapeGeometry(heart), material("#ed9faf"));
+        lens.position.set(x, -0.015, 0.525);
+        eyewear.add(lens);
+        add(eyewear, "charball", "#fff2df", [0.06, 0.04, 0.009], [x, -0.03, 0.53]);
+      } else if (kind === "flower") {
+        for (let petal = 0; petal < 5; petal++) {
+          const a = (petal * Math.PI * 2) / 5;
+          add(eyewear, "charball", "#ed9faf", [0.075, 0.07, 0.015], [x + Math.sin(a) * 0.1, -0.015 + Math.cos(a) * 0.1, 0.525]);
         }
+        add(eyewear, "charball", "#fff2cd", [0.08, 0.08, 0.02], [x, -0.015, 0.53]);
+      } else if (kind === "goggles") {
+        add(eyewear, "charball", "#b6dfdf", [0.16, 0.12, 0.018], [x, -0.015, 0.515]);
+        add(eyewear, "ring", frame, [0.17, 0.17, 0.17], [x, -0.015, 0.53]);
+        for (const dx of [-0.15, 0.15]) add(eyewear, "box", frame, [0.1, 0.04, 0.03], [x + dx, -0.015, 0.5]);
+      } else if (kind === "square") {
+        const w = 0.29;
+        for (const y of [-0.1, 0.1]) add(eyewear, "box", frame, [w, 0.025, 0.03], [x, -0.015 + y, 0.52]);
+        for (const dx of [-w / 2, w / 2]) add(eyewear, "box", frame, [0.027, 0.2, 0.03], [x + dx, -0.015, 0.52]);
+      } else if (kind === "sunglasses") {
+        add(eyewear, "charball", "#293b48", [0.16, 0.11, 0.025], [x, -0.02, 0.515]);
+      } else {
+        add(eyewear, "ring", frame, [0.15, 0.17, 0.15], [x, -0.015, 0.5]);
       }
     }
-    if (style !== 5)
-      add(head, "box", "#5b686a", [0.15, 0.025, 0.03], [0, 0, 0.51]);
+    if (kind !== "monocle") add(eyewear, "box", frame, [0.15, 0.028, 0.03], [0, 0, 0.52]);
+    if (kind === "monocle") add(eyewear, "box", frame, [0.025, 0.24, 0.025], [0.34, -0.17, 0.52]);
   }
   const prop = new THREE.Group();
   body.add(prop);
@@ -955,7 +1074,8 @@ export function creatureModel(c, scale = 1) {
 export function furniture(item) {
   const g = new THREE.Group(),
     c = item?.color || "#b1c9bb",
-    shape = item?.shape || 0;
+    shape = item ? FURNITURE_VISUALS.indexOf(itemVisual(item)) : 0;
+  g.userData.visual = item ? itemVisual(item) : null;
   const leg = (x, z) =>
     add(g, "cylinder", "#a77b54", [0.05, 0.5, 0.05], [x, 0.25, z]);
   if (shape === 0) {
