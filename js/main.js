@@ -1660,11 +1660,26 @@ ${c.move}${this.s.arena.shinyCards.includes(id) ? "\nきらかーど！" : ""}`;
       case "mansionpage":
         this.mansion(+b);
         break;
-      case "room":
+      case "room": {
+        const enteringSelfRoom = this.scene !== "room" || this.roomFriend !== null;
         this.room();
+        if (enteringSelfRoom) {
+          R.metric(this.s, "room");
+          await this.commit();
+        }
         break;
+      }
       case "resident":
-        this.room(b === "self" ? null : b);
+        if (b === "self") {
+          const enteringSelfRoom = this.scene !== "room" || this.roomFriend !== null;
+          this.room();
+          if (enteringSelfRoom) {
+            R.metric(this.s, "room");
+            await this.commit();
+          }
+        } else {
+          this.room(b);
+        }
         break;
       case "friend":
         await this.friend(b);
